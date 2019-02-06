@@ -1,0 +1,116 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'thrive-security-console template'
+
+
+Metadata:
+  'AWS::CloudFormation::Interface':
+    ParameterGroups:
+    - Label:
+        default: 'Common parameters'
+      Parameters:
+      - TimeoutInMinutes
+      - NotificationTopic
+    - Label:
+        default: 'Client VPN parameters'
+      Parameters:
+      - VpcId
+      - SubnetIds
+      - SubnetCount
+      - CidrBlock
+      - ServerCertificateArn
+      - ClientRootCertificateChainArn
+
+
+Parameters:
+  VpcId:
+    Type: String
+    Description: 'Specify the VPC Id.'
+    Default: ''
+  SubnetIds:
+    Type: String
+    Description: 'Specify a comma separated list of subnets, maximum four (4).'
+    Default: ''
+  SubnetCount:
+    Description: 'Specify number of subnets in the list.'
+    Type: Number
+    Default: 0
+  CidrBlock:
+    Description: 'Specify second octet in RFC1918 172.[16-31].0.0/22 block.'
+    Type: String
+    AllowedPattern: ^(^172\.1[6-9]\.0\.0\/22)|(^172\.2[0-9]\.0\.0\/22)|(^172\.3[0-1]\.0\.0\/22)$
+  ServerCertificateArn:
+    Description: 'Specify server certificate ARN in ACM.'
+    Type: String
+    Default: ''
+  ClientRootCertificateChainArn:
+    Description: 'Specify client certificate ARN in ACM.'
+    Type: String
+    Default: ''
+  NotificationTopic:
+    Description: 'Specify optional SNS topic for initial CloudFormation event notifications.'
+    Type: String
+    Default: ''
+  TimeoutInMinutes:
+    Description: 'Specify optional timeout in minutes for stack creation.'
+    Type: Number
+    Default: 60
+
+
+Conditions:
+  HasNotify: !Not [ !Equals [ '', !Ref 'NotificationTopic' ]]
+  HasVPN: !And
+  - !Not [ !Equals [ '', !Ref 'ServerCertificateArn' ]]
+  - !Not [ !Equals [ '', !Ref 'ClientRootCertificateChainArn' ]]
+
+
+Resources:
+  LambdaStack:
+    Type: 'AWS::CloudFormation::Stack'
+    Properties:
+      TemplateURL: ./lambda.yaml
+      Parameters:
+        NameTag: !Sub '${AWS::StackName}'
+      NotificationARNs:
+      - !If [ HasNotify, !Ref 'NotificationTopic', !Ref 'AWS::NoValue' ]
+      TimeoutInMinutes: !Ref 'TimeoutInMinutes'
+      Tags:
+      - Key: Name
+        Value: !Sub '${AWS::StackName}'
+
+  VPNStack:
+    Type: 'AWS::CloudFormation::Stack'
+    Condition: HasVPN
+    Properties:
+      TemplateURL: ./client-vpn.yaml
+      Parameters:
+        NameTag: !Sub '${AWS::StackName}'
+        CustomResourceLambdaArn: !GetAtt [ LambdaStack, Outputs.CustomResourceLambdaArn ]
+        ClientCidrBlock: !Sub '${CidrBlock}'
+        VpcId: !Sub '${VpcId}'
+        SubnetIds: !Sub '${SubnetIds}'
+        SubnetCount: !Sub '${SubnetCount}'
+        ServerCertificateArn: !Sub '${ServerCertificateArn}'
+        ClientRootCertificateChainArn: !Sub '${ClientRootCertificateChainArn}'
+      NotificationARNs:
+      - !If [ HasNotify, !Ref 'NotificationTopic', !Ref 'AWS::NoValue' ]
+      TimeoutInMinutes: !Ref 'TimeoutInMinutes'
+      Tags:
+      - Key: Name
+        Value: !Sub '${AWS::StackName}'
+
+
+Outputs:
+  StackName:
+    Value: !Ref 'AWS::StackName'
+    Export:
+      Name: !Sub 'StackName-${AWS::StackName}'
+  LambdaStack:
+    Value: !GetAtt [ LambdaStack, Outputs.StackName ]
+    Export:
+      Name: !Sub 'LambdaStackName-${AWS::StackName}'
+  VPNStack:
+    Condition: HasVPN
+    Value: !GetAtt [ VPNStack, Outputs.StackName ]
+    Export:
+      Name: !Sub 'VPNStackName-${AWS::StackName}'

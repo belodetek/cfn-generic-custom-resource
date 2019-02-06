@@ -1,0 +1,655 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: 'Client VPN resources'
+
+
+Parameters:
+  NameTag:
+    Type: String
+  CustomResourceLambdaArn:
+    Type: String
+  ClientCidrBlock:
+    Type: String
+  VpcId:
+    Type: String
+  SubnetIds:
+    Type: String
+  SubnetCount:
+    Type: String
+  ServerCertificateArn:
+    Type: String
+  ClientRootCertificateChainArn:
+    Type: String
+
+
+Conditions:
+  HasVPC: !Not [ !Equals [ '', !Ref 'VpcId' ]]
+  Has1Subnet: !And
+  - !Equals [ 1, !Ref 'SubnetCount' ]
+  - !Not [ !Equals [ '', !Ref 'SubnetIds' ]]
+  Has2Subnets: !And
+  - !Equals [ 2, !Ref 'SubnetCount' ]
+  - !Not [ !Equals [ '', !Ref 'SubnetIds' ]]
+  Has3Subnets: !And
+  - !Equals [ 3, !Ref 'SubnetCount' ]
+  - !Not [ !Equals [ '', !Ref 'SubnetIds' ]]
+  Has4Subnets: !And
+  - !Equals [ 4, !Ref 'SubnetCount' ]
+  - !Not [ !Equals [ '', !Ref 'SubnetIds' ]]
+  HasOneSubnet: !Or
+  - !Condition Has4Subnets
+  - !Condition Has3Subnets
+  - !Condition Has2Subnets
+  - !Condition Has1Subnet
+  HasTwoSubnets: !Or
+  - !Condition Has4Subnets
+  - !Condition Has3Subnets
+  - !Condition Has2Subnets
+  HasThreeSubnets: !Or
+  - !Condition Has4Subnets
+  - !Condition Has3Subnets
+  HasFourSubnets: !Condition Has4Subnets
+
+
+Resources:
+  ClientVPNEndpoint:
+    Type: 'Custom::ClientVPNEndpoint'
+    Properties:
+      ServiceToken: !Sub '${CustomResourceLambdaArn}'
+      AgentService: ec2
+      AgentType: client
+      AgentCreateMethod: create_client_vpn_endpoint
+      AgentDeleteMethod: delete_client_vpn_endpoint
+      AgentResourceId: ClientVpnEndpointId
+      # ship AgentCreateArgs as JSON string to ensure correct boolean handling
+      # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2.html#EC2.Client.create_client_vpn_endpoint
+      AgentCreateArgs: !Sub |
+        {
+          "ClientCidrBlock": "${ClientCidrBlock}",
+          "ServerCertificateArn": "${ServerCertificateArn}",
+          "AuthenticationOptions": [
+            {
+              "Type": "certificate-authentication",
+              "MutualAuthentication": {
+                "ClientRootCertificateChainArn": "${ClientRootCertificateChainArn}"
+              }
+            }
+          ],
+          "ConnectionLogOptions": {
+            "Enabled": false
+          },
+          "DnsServers": [
+            "1.1.1.1",
+            "1.0.0.1"
+          ],
+          "TransportProtocol": "udp",
+          "Description": "${NameTag} client VPN endpoint."
+        }
+
+  AssociateSubnetOne:
+    Type: 'Custom::SubnetOneAssociation'
+    Condition: HasOneSubnet
+    Properties:
+      ServiceToken: !Sub '${CustomResourceLambdaArn}'
+      AgentService: ec2
+      AgentType: client
+      # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2.html#EC2.Client.associate_client_vpn_target_network
+      AgentCreateMethod: associate_client_vpn_target_network
+      AgentDeleteMethod: disassociate_client_vpn_target_network
+      AgentWaitMethod: describe_client_vpn_target_networks
+      AgentWaitQueryExpr: !Join
+      - ''
+      - - '$.ClientVpnTargetNetworks[?(@.TargetNetworkId=="'
+        - !Select [ 0, !Split [ ',', !Ref 'SubnetIds' ]]
+        - '")].Status.Code'
+      AgentWaitCreateQueryValues:
+      - associated
+      AgentWaitDeleteQueryValues: []
+      AgentResourceId: AssociationId
+      AgentWaitResourceId:
+      - AssociationIds
+      AgentCreateArgs:
+        ClientVpnEndpointId: !Sub '${ClientVPNEndpoint}'
+        SubnetId: !Select [ 0, !Split [ ',', !Ref 'SubnetIds' ]]
+      AgentWaitArgs:
+        ClientVpnEndpointId: !Sub '${ClientVPNEndpoint}'
+      AgentDeleteArgs:
+        ClientVpnEndpointId: !Sub '${ClientVPNEndpoint}'
+
+  AssociateSubnetTwo:
+    Type: 'Custom::SubnetOneAssociation'
+    Condition: HasTwoSubnets
+    DependsOn: AssociateSubnetOne
+    Properties:
+      ServiceToken: !Sub '${CustomResourceLambdaArn}'
+      AgentService: ec2
+      AgentType: client
+      AgentCreateMethod: associate_client_vpn_target_network
+      AgentDeleteMethod: disassociate_client_vpn_target_network
+      AgentWaitMethod: describe_client_vpn_target_networks
+      AgentWaitQueryExpr: !Join
+      - ''
+      - - '$.ClientVpnTargetNetworks[?(@.TargetNetworkId=="'
+        - !Select [ 1, !Split [ ',', !Ref 'SubnetIds' ]]
+        - '")].Status.Code'
+      AgentWaitCreateQueryValues:
+      - associated
+      AgentWaitDeleteQueryValues: []
+      AgentResourceId: AssociationId
+      AgentWaitResourceId:
+      - AssociationIds
+      AgentCreateArgs:
+        ClientVpnEndpointId: !Sub '${ClientVPNEndpoint}'
+        SubnetId: !Select [ 1, !Split [ ',', !Ref 'SubnetIds' ]]
+      AgentWaitArgs:
+        ClientVpnEndpointId: !Sub '${ClientVPNEndpoint}'
+      AgentDeleteArgs:
+        ClientVpnEndpointId: !Sub '${ClientVPNEndpoint}'
+
+  AssociateSubnetThree:
+    Type: 'Custom::SubnetOneAssociation'
+    Condition: HasThreeSubnets
+    DependsOn:
+    - AssociateSubnetOne
+    - AssociateSubnetTwo
+    Properties:
+      ServiceToken: !Sub '${CustomResourceLambdaArn}'
+      AgentService: ec2
+      AgentType: client
+      AgentCreateMethod: associate_client_vpn_target_network
+      AgentDeleteMethod: disassociate_client_vpn_target_network
+      AgentWaitMethod: describe_client_vpn_target_networks
+      AgentWaitQueryExpr: !Join
+      - ''
+      - - '$.ClientVpnTargetNetworks[?(@.TargetNetworkId=="'
+        - !Select [ 2, !Split [ ',', !Ref 'SubnetIds' ]]
+        - '")].Status.Code'
+      AgentWaitCreateQueryValues:
+      - associated
+      AgentWaitDeleteQueryValues: []
+      AgentResourceId: AssociationId
+      AgentWaitResourceId:
+      - AssociationIds
+      AgentCreateArgs:
+        ClientVpnEndpointId: !Sub '${ClientVPNEndpoint}'
+        SubnetId: !Select [ 2, !Split [ ',', !Ref 'SubnetIds' ]]
+      AgentWaitArgs:
+        ClientVpnEndpointId: !Sub '${ClientVPNEndpoint}'
+      AgentDeleteArgs:
+        ClientVpnEndpointId: !Sub '${ClientVPNEndpoint}'
+
+  AssociateSubnetFour:
+    Type: 'Custom::SubnetOneAssociation'
+    Condition: HasFourSubnets
+    DependsOn:
+    - AssociateSubnetOne
+    - AssociateSubnetTwo
+    - AssociateSubnetThree
+    Properties:
+      ServiceToken: !Sub '${CustomResourceLambdaArn}'
+      AgentService: ec2
+      AgentType: client
+      AgentCreateMethod: associate_client_vpn_target_network
+      AgentDeleteMethod: disassociate_client_vpn_target_network
+      AgentWaitMethod: describe_client_vpn_target_networks
+      AgentWaitQueryExpr: !Join
+      - ''
+      - - '$.ClientVpnTargetNetworks[?(@.TargetNetworkId=="'
+        - !Select [ 3, !Split [ ',', !Ref 'SubnetIds' ]]
+        - '")].Status.Code'
+      AgentWaitCreateQueryValues:
+      - associated
+      AgentWaitDeleteQueryValues: []
+      AgentResourceId: AssociationId
+      AgentWaitResourceId:
+      - AssociationIds
+      AgentCreateArgs:
+        ClientVpnEndpointId: !Sub '${ClientVPNEndpoint}'
+        SubnetId: !Select [ 3, !Split [ ',', !Ref 'SubnetIds' ]]
+      AgentWaitArgs:
+        ClientVpnEndpointId: !Sub '${ClientVPNEndpoint}'
+      AgentDeleteArgs:
+        ClientVpnEndpointId: !Sub '${ClientVPNEndpoint}'
+
+  # ensure associations are complete since otherwise authorization appears to be blocked
+  ClientVPNIngressOne:
+    Type: 'Custom::ClientVPNIngress'
+    Condition: Has1Subnet
+    DependsOn: AssociateSubnetOne
+    Properties:
+      ServiceToken: !Sub '${CustomResourceLambdaArn}'
+      AgentService: ec2
+      AgentType: client
+      # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2.html#EC2.Client.authorize_client_vpn_ingress
+      AgentCreateMethod: authorize_client_vpn_ingress
+      AgentDeleteMethod: revoke_client_vpn_ingress
+      AgentWaitMethod: describe_client_vpn_authorization_rules
+      AgentWaitQueryExpr: '$.AuthorizationRules[?(@.DestinationCidr=="0.0.0.0/0")].Status.Code'
+      AgentWaitCreateQueryValues:
+      - active
+      AgentWaitDeleteQueryValues: []
+      AgentCreateArgs: !Sub |
+        {
+          "ClientVpnEndpointId": "${ClientVPNEndpoint}",
+          "TargetNetworkCidr": "0.0.0.0/0",
+          "AuthorizeAllGroups": true,
+          "Description": "${NameTag} client VPN ingress."
+
+        }
+      AgentDeleteArgs: !Sub |
+        {
+          "ClientVpnEndpointId": "${ClientVPNEndpoint}",
+          "TargetNetworkCidr": "0.0.0.0/0",
+          "RevokeAllGroups": true
+
+        }
+      AgentWaitArgs:
+        ClientVpnEndpointId: !Sub '${ClientVPNEndpoint}'
+
+  ClientVPNIngressTwo:
+    Type: 'Custom::ClientVPNIngress'
+    Condition: Has2Subnets
+    DependsOn:
+    - AssociateSubnetOne
+    - AssociateSubnetTwo
+    Properties:
+      ServiceToken: !Sub '${CustomResourceLambdaArn}'
+      AgentService: ec2
+      AgentType: client
+      AgentCreateMethod: authorize_client_vpn_ingress
+      AgentDeleteMethod: revoke_client_vpn_ingress
+      AgentWaitMethod: describe_client_vpn_authorization_rules
+      AgentWaitQueryExpr: '$.AuthorizationRules[?(@.DestinationCidr=="0.0.0.0/0")].Status.Code'
+      AgentWaitCreateQueryValues:
+      - active
+      AgentWaitDeleteQueryValues: []
+      AgentCreateArgs: !Sub |
+        {
+          "ClientVpnEndpointId": "${ClientVPNEndpoint}",
+          "TargetNetworkCidr": "0.0.0.0/0",
+          "AuthorizeAllGroups": true,
+          "Description": "${NameTag} client VPN ingress."
+
+        }
+      AgentDeleteArgs: !Sub |
+        {
+          "ClientVpnEndpointId": "${ClientVPNEndpoint}",
+          "TargetNetworkCidr": "0.0.0.0/0",
+          "RevokeAllGroups": true
+
+        }
+      AgentWaitArgs:
+        ClientVpnEndpointId: !Sub '${ClientVPNEndpoint}'
+
+  ClientVPNIngressThree:
+    Type: 'Custom::ClientVPNIngress'
+    Condition: Has3Subnets
+    DependsOn:
+    - AssociateSubnetOne
+    - AssociateSubnetTwo
+    - AssociateSubnetThree
+    Properties:
+      ServiceToken: !Sub '${CustomResourceLambdaArn}'
+      AgentService: ec2
+      AgentType: client
+      AgentCreateMethod: authorize_client_vpn_ingress
+      AgentDeleteMethod: revoke_client_vpn_ingress
+      AgentWaitMethod: describe_client_vpn_authorization_rules
+      AgentWaitQueryExpr: '$.AuthorizationRules[?(@.DestinationCidr=="0.0.0.0/0")].Status.Code'
+      AgentWaitCreateQueryValues:
+      - active
+      AgentWaitDeleteQueryValues: []
+      AgentCreateArgs: !Sub |
+        {
+          "ClientVpnEndpointId": "${ClientVPNEndpoint}",
+          "TargetNetworkCidr": "0.0.0.0/0",
+          "AuthorizeAllGroups": true,
+          "Description": "${NameTag} client VPN ingress."
+
+        }
+      AgentDeleteArgs: !Sub |
+        {
+          "ClientVpnEndpointId": "${ClientVPNEndpoint}",
+          "TargetNetworkCidr": "0.0.0.0/0",
+          "RevokeAllGroups": true
+
+        }
+      AgentWaitArgs:
+        ClientVpnEndpointId: !Sub '${ClientVPNEndpoint}'
+
+  ClientVPNIngressFour:
+    Type: 'Custom::ClientVPNIngress'
+    Condition: Has4Subnets
+    DependsOn:
+    - AssociateSubnetOne
+    - AssociateSubnetTwo
+    - AssociateSubnetThree
+    - AssociateSubnetFour
+    Properties:
+      ServiceToken: !Sub '${CustomResourceLambdaArn}'
+      AgentService: ec2
+      AgentType: client
+      AgentCreateMethod: authorize_client_vpn_ingress
+      AgentDeleteMethod: revoke_client_vpn_ingress
+      AgentWaitMethod: describe_client_vpn_authorization_rules
+      AgentWaitQueryExpr: '$.AuthorizationRules[?(@.DestinationCidr=="0.0.0.0/0")].Status.Code'
+      AgentWaitCreateQueryValues:
+      - active
+      AgentWaitDeleteQueryValues: []
+      AgentCreateArgs: !Sub |
+        {
+          "ClientVpnEndpointId": "${ClientVPNEndpoint}",
+          "TargetNetworkCidr": "0.0.0.0/0",
+          "AuthorizeAllGroups": true,
+          "Description": "${NameTag} client VPN ingress."
+
+        }
+      AgentDeleteArgs: !Sub |
+        {
+          "ClientVpnEndpointId": "${ClientVPNEndpoint}",
+          "TargetNetworkCidr": "0.0.0.0/0",
+          "RevokeAllGroups": true
+
+        }
+      AgentWaitArgs:
+        ClientVpnEndpointId: !Sub '${ClientVPNEndpoint}'
+
+  DefaultRouteSubnetOne:
+    Type: 'Custom::ClientVPNRoute'
+    Condition: HasOneSubnet
+    DependsOn: AssociateSubnetOne
+    Properties:
+      ServiceToken: !Sub '${CustomResourceLambdaArn}'
+      AgentService: ec2
+      AgentType: client
+      # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2.html#EC2.Client.create_client_vpn_route
+      AgentCreateMethod: create_client_vpn_route
+      AgentDeleteMethod: delete_client_vpn_route
+      AgentWaitMethod: describe_client_vpn_routes
+      AgentWaitQueryExpr: !Join
+      - ''
+      - - '$.Routes[?(@.TargetSubnet=="'
+        - !Select [ 0, !Split [ ',', !Ref 'SubnetIds' ]]
+        - '" && @.DestinationCidr=="0.0.0.0/0")].Status.Code'
+      AgentWaitCreateQueryValues:
+      - active
+      AgentWaitDeleteQueryValues: []
+      AgentCreateArgs:
+        ClientVpnEndpointId: !Sub '${ClientVPNEndpoint}'
+        DestinationCidrBlock: '0.0.0.0/0'
+        TargetVpcSubnetId: !Select [ 0, !Split [ ',', !Ref 'SubnetIds' ]]
+        Description: !Sub '${NameTag} client VPN default route.'
+      AgentDeleteArgs:
+        ClientVpnEndpointId: !Sub '${ClientVPNEndpoint}'
+        DestinationCidrBlock: '0.0.0.0/0'
+        TargetVpcSubnetId: !Select [ 0, !Split [ ',', !Ref 'SubnetIds' ]]
+      AgentWaitArgs:
+        ClientVpnEndpointId: !Sub '${ClientVPNEndpoint}'
+
+  DefaultRouteSubnetTwo:
+    Type: 'Custom::ClientVPNRoute'
+    Condition: HasTwoSubnets
+    DependsOn:
+    - AssociateSubnetOne
+    - AssociateSubnetTwo
+    - DefaultRouteSubnetOne
+    Properties:
+      ServiceToken: !Sub '${CustomResourceLambdaArn}'
+      AgentService: ec2
+      AgentType: client
+      AgentCreateMethod: create_client_vpn_route
+      AgentDeleteMethod: delete_client_vpn_route
+      AgentWaitMethod: describe_client_vpn_routes
+      AgentWaitQueryExpr: !Join
+      - ''
+      - - '$.Routes[?(@.TargetSubnet=="'
+        - !Select [ 1, !Split [ ',', !Ref 'SubnetIds' ]]
+        - '" && @.DestinationCidr=="0.0.0.0/0")].Status.Code'
+      AgentWaitCreateQueryValues:
+      - active
+      AgentWaitDeleteQueryValues: []
+      AgentCreateArgs:
+        ClientVpnEndpointId: !Sub '${ClientVPNEndpoint}'
+        DestinationCidrBlock: '0.0.0.0/0'
+        TargetVpcSubnetId: !Select [ 1, !Split [ ',', !Ref 'SubnetIds' ]]
+        Description: !Sub '${NameTag} client VPN default route.'
+      AgentDeleteArgs:
+        ClientVpnEndpointId: !Sub '${ClientVPNEndpoint}'
+        DestinationCidrBlock: '0.0.0.0/0'
+        TargetVpcSubnetId: !Select [ 1, !Split [ ',', !Ref 'SubnetIds' ]]
+      AgentWaitArgs:
+        ClientVpnEndpointId: !Sub '${ClientVPNEndpoint}'
+
+  DefaultRouteSubnetThree:
+    Type: 'Custom::ClientVPNRoute'
+    Condition: HasThreeSubnets
+    DependsOn:
+    - AssociateSubnetOne
+    - AssociateSubnetTwo
+    - AssociateSubnetThree
+    - DefaultRouteSubnetOne
+    - DefaultRouteSubnetTwo
+    Properties:
+      ServiceToken: !Sub '${CustomResourceLambdaArn}'
+      AgentService: ec2
+      AgentType: client
+      AgentCreateMethod: create_client_vpn_route
+      AgentDeleteMethod: delete_client_vpn_route
+      AgentWaitMethod: describe_client_vpn_routes
+      AgentWaitQueryExpr: !Join
+      - ''
+      - - '$.Routes[?(@.TargetSubnet=="'
+        - !Select [ 2, !Split [ ',', !Ref 'SubnetIds' ]]
+        - '" && @.DestinationCidr=="0.0.0.0/0")].Status.Code'
+      AgentWaitCreateQueryValues:
+      - active
+      AgentWaitDeleteQueryValues: []
+      AgentCreateArgs:
+        ClientVpnEndpointId: !Sub '${ClientVPNEndpoint}'
+        DestinationCidrBlock: '0.0.0.0/0'
+        TargetVpcSubnetId: !Select [ 2, !Split [ ',', !Ref 'SubnetIds' ]]
+        Description: !Sub '${NameTag} client VPN default route.'
+      AgentDeleteArgs:
+        ClientVpnEndpointId: !Sub '${ClientVPNEndpoint}'
+        DestinationCidrBlock: '0.0.0.0/0'
+        TargetVpcSubnetId: !Select [ 2, !Split [ ',', !Ref 'SubnetIds' ]]
+      AgentWaitArgs:
+        ClientVpnEndpointId: !Sub '${ClientVPNEndpoint}'
+
+  DefaultRouteSubnetFour:
+    Type: 'Custom::ClientVPNRoute'
+    Condition: HasFourSubnets
+    DependsOn:
+    - AssociateSubnetOne
+    - AssociateSubnetTwo
+    - AssociateSubnetThree
+    - AssociateSubnetFour
+    - DefaultRouteSubnetOne
+    - DefaultRouteSubnetTwo
+    - DefaultRouteSubnetThree
+    Properties:
+      ServiceToken: !Sub '${CustomResourceLambdaArn}'
+      AgentService: ec2
+      AgentType: client
+      AgentCreateMethod: create_client_vpn_route
+      AgentDeleteMethod: delete_client_vpn_route
+      AgentWaitMethod: describe_client_vpn_routes
+      AgentWaitQueryExpr: !Join
+      - ''
+      - - '$.Routes[?(@.TargetSubnet=="'
+        - !Select [ 3, !Split [ ',', !Ref 'SubnetIds' ]]
+        - '" && @.DestinationCidr=="0.0.0.0/0")].Status.Code'
+      AgentWaitCreateQueryValues:
+      - active
+      AgentWaitDeleteQueryValues: []
+      AgentCreateArgs:
+        ClientVpnEndpointId: !Sub '${ClientVPNEndpoint}'
+        DestinationCidrBlock: '0.0.0.0/0'
+        TargetVpcSubnetId: !Select [ 3, !Split [ ',', !Ref 'SubnetIds' ]]
+        Description: !Sub '${NameTag} client VPN default route.'
+      AgentDeleteArgs:
+        ClientVpnEndpointId: !Sub '${ClientVPNEndpoint}'
+        DestinationCidrBlock: '0.0.0.0/0'
+        TargetVpcSubnetId: !Select [ 3, !Split [ ',', !Ref 'SubnetIds' ]]
+      AgentWaitArgs:
+        ClientVpnEndpointId: !Sub '${ClientVPNEndpoint}'
+
+  VPNSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Condition: HasVPC
+    Properties:
+      VpcId: !Sub '${VpcId}'
+      GroupDescription: !Sub '${NameTag} client VPN security group.'
+      SecurityGroupEgress:
+      - IpProtocol: '-1'
+        Description: 'Allow all inbound.'
+        FromPort: '-1'
+        ToPort: '-1'
+        CidrIp: '0.0.0.0/0'
+      - IpProtocol: '-1'
+        Description: 'Allow all inbound Ipv6.'
+        FromPort: '-1'
+        ToPort: '-1'
+        CidrIpv6: '::/0'
+      SecurityGroupIngress:
+      - IpProtocol: '-1'
+        Description: 'Allow all outbound.'
+        FromPort: '-1'
+        ToPort: '-1'
+        CidrIp: '0.0.0.0/0'
+      - IpProtocol: '-1'
+        Description: 'Allow outbound Ipv6.'
+        FromPort: '-1'
+        ToPort: '-1'
+        CidrIpv6: '::/0'
+      Tags:
+      - Key: Name
+        Value: !Sub '${NameTag}'
+
+  VPNSecurityGroupIngress:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Condition: HasVPC
+    Properties:
+      IpProtocol: -1
+      SourceSecurityGroupId: !Sub '${VPNSecurityGroup}'
+      GroupId: !Sub '${VPNSecurityGroup}'
+      Description: 'Allow all group traffic.'
+
+  ApplySecurityGroupOne:
+    Type: 'Custom::ClientVPNSecurityGroup'
+    Condition: Has1Subnet
+    DependsOn:
+    - VPNSecurityGroupIngress
+    - ClientVPNIngressOne
+    - DefaultRouteSubnetOne
+    Properties:
+      ServiceToken: !Sub '${CustomResourceLambdaArn}'
+      AgentService: ec2
+      AgentType: client
+      AgentCreateMethod: apply_security_groups_to_client_vpn_target_network
+      AgentCreateArgs:
+        ClientVpnEndpointId: !Sub '${ClientVPNEndpoint}'
+        VpcId: !Sub '${VpcId}'
+        SecurityGroupIds:
+        - !Sub '${VPNSecurityGroup}'
+
+  ApplySecurityGroupTwo:
+    Type: 'Custom::ClientVPNSecurityGroup'
+    Condition: Has2Subnets
+    DependsOn:
+    - VPNSecurityGroupIngress
+    - ClientVPNIngressTwo
+    - DefaultRouteSubnetOne
+    - DefaultRouteSubnetTwo
+    Properties:
+      ServiceToken: !Sub '${CustomResourceLambdaArn}'
+      AgentService: ec2
+      AgentType: client
+      # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2.html#EC2.Client.apply_security_groups_to_client_vpn_target_network
+      AgentCreateMethod: apply_security_groups_to_client_vpn_target_network
+      AgentCreateArgs:
+        ClientVpnEndpointId: !Sub '${ClientVPNEndpoint}'
+        VpcId: !Sub '${VpcId}'
+        SecurityGroupIds:
+        - !Sub '${VPNSecurityGroup}'
+
+  ApplySecurityGroupThree:
+    Type: 'Custom::ClientVPNSecurityGroup'
+    Condition: Has3Subnets
+    DependsOn:
+    - VPNSecurityGroupIngress
+    - ClientVPNIngressThree
+    - DefaultRouteSubnetOne
+    - DefaultRouteSubnetTwo
+    - DefaultRouteSubnetThree
+    Properties:
+      ServiceToken: !Sub '${CustomResourceLambdaArn}'
+      AgentService: ec2
+      AgentType: client
+      AgentCreateMethod: apply_security_groups_to_client_vpn_target_network
+      AgentCreateArgs:
+        ClientVpnEndpointId: !Sub '${ClientVPNEndpoint}'
+        VpcId: !Sub '${VpcId}'
+        SecurityGroupIds:
+        - !Sub '${VPNSecurityGroup}'
+
+  ApplySecurityGroupFour:
+    Type: 'Custom::ClientVPNSecurityGroup'
+    Condition: Has4Subnets
+    DependsOn:
+    - VPNSecurityGroupIngress
+    - ClientVPNIngressFour
+    - DefaultRouteSubnetOne
+    - DefaultRouteSubnetTwo
+    - DefaultRouteSubnetThree
+    - DefaultRouteSubnetFour
+    Properties:
+      ServiceToken: !Sub '${CustomResourceLambdaArn}'
+      AgentService: ec2
+      AgentType: client
+      AgentCreateMethod: apply_security_groups_to_client_vpn_target_network
+      AgentCreateArgs:
+        ClientVpnEndpointId: !Sub '${ClientVPNEndpoint}'
+        VpcId: !Sub '${VpcId}'
+        SecurityGroupIds:
+        - !Sub '${VPNSecurityGroup}'
+
+
+Outputs:
+  StackName:
+    Value: !Sub '${AWS::StackName}'
+    Export:
+      Name: !Sub 'StackName-${AWS::StackName}'
+  ClientVpnEndpointId:
+    Value: !Sub '${ClientVPNEndpoint}'
+    Export:
+      Name: !Sub 'ClientVpnEndpointId-${AWS::StackName}'
+  DnsName:
+    Value: !Sub '${ClientVPNEndpoint.DnsName}'
+    Export:
+      Name: !Sub 'DnsName-${AWS::StackName}'
+  AssociationIds:
+    Value: !If
+    - Has1Subnet
+    - !Sub '${AssociateSubnetOne}'
+    - !If
+      - Has2Subnets
+      - !Join
+         - ','
+         - - !Sub '${AssociateSubnetOne}'
+           - !Sub '${AssociateSubnetTwo}'
+      - !If
+        - Has3Subnets
+        - !Join
+           - ','
+           - - !Sub '${AssociateSubnetOne}'
+             - !Sub '${AssociateSubnetTwo}'
+             - !Sub '${AssociateSubnetThree}'
+        - !Join
+          - ','
+          - - !Sub '${AssociateSubnetOne}'
+            - !Sub '${AssociateSubnetTwo}'
+            - !Sub '${AssociateSubnetThree}'
+            - !Sub '${AssociateSubnetFour}'
+    Export:
+      Name: !Sub 'AssociationIds-${AWS::StackName}'

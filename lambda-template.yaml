@@ -1,0 +1,65 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: 'Lambda resources'
+
+
+Parameters:
+  NameTag:
+    Type: String
+
+
+Resources:
+  CustomResourceLambdaRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action: 'sts:AssumeRole'
+            Principal:
+              Service: lambda.amazonaws.com
+      Policies:
+      - PolicyName: AmazonCloudWatchPolicy
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - 'logs:CreateLogGroup'
+            - 'logs:CreateLogStream'
+            - 'logs:PutLogEvents'
+            Resource: !Sub 'arn:${AWS::Partition}:logs:*:*:*'
+      - PolicyName: AmazonEC2Policy
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - 'ec2:*ClientVpn*'
+            Resource: '*'
+
+
+  CustomResourceLambda:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Handler: generic_provider.lambda_handler
+      Code: generic_provider
+      Runtime: python3.7
+      Role: !Sub '${CustomResourceLambdaRole.Arn}'
+      Description: 'CloudFormation custom generic resource provider.'
+      Timeout: 900
+      Tags:
+      - Key: Name
+        Value: !Sub '${NameTag}'
+
+
+Outputs:
+  StackName:
+    Value: !Sub '${AWS::StackName}'
+    Export:
+      Name: !Sub 'StackName-${AWS::StackName}'
+  CustomResourceLambdaArn:
+    Value: !Sub '${CustomResourceLambda.Arn}'
+    Export:
+      Name: !Sub 'CustomResourceLambdaArn-${AWS::StackName}'
