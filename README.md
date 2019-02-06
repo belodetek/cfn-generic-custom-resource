@@ -1,8 +1,9 @@
 # cfn-custom-resource-provider
-> Generic CloudFormation [Custom Resources](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/template-custom-resources.html) provider.
 
+> **TL;DR** because a new Lambda function for each resource CFN doesn't handle gets boring, quickly.
 
 ## CloudFormation
+> Generic CloudFormation [Custom Resources](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/template-custom-resources.html) provider.
 
 ### ClientVPN demo
 
