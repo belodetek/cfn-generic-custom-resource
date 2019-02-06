@@ -4,7 +4,9 @@
 
 ## CloudFormation
 
-### init
+### ClientVPN demo
+
+#### init
 
     git clone https://github.com/ab77/cfn-generic-custom-resource
 
@@ -13,8 +15,8 @@
     git submodule update --remote --recursive
 
 
-### certificates
-> [generate](https://docs.aws.amazon.com/vpn/latest/clientvpn-admin/authentication-authrization.html)
+#### certificates
+> [issue](https://docs.aws.amazon.com/vpn/latest/clientvpn-admin/authentication-authrization.html) certificates with [easy-rsa](https://github.com/OpenVPN/easy-rsa)
 
     server_certificate=$(aws acm import-certificate\
       --certificate file://easy-rsa/easyrsa3/pki/issued/server.crt\
@@ -27,7 +29,7 @@
       --certificate-chain file://easy-rsa/easyrsa3/pki/ca.crt | jq -r '.CertificateArn')
 
 
-### intall requirements
+#### intall requirements
 > Lambda provided boto3 doesn't support Client VPN resources at the time of writing
 
     pushd generic_provider\
@@ -35,7 +37,7 @@
       && popd
 
 
-### package assets
+#### package assets
 > creates a new bucket with a random GUID
 
     bucket=$(uuid)
@@ -49,7 +51,7 @@
     done
 
 
-### deploy stack
+#### deploy stack
 
     stack_name='client-vpn-demo'
     vpc_id=vpc-abcdef1234567890
@@ -76,7 +78,7 @@
       AccountId=$(aws sts get-caller-identity | jq -r '.Account')
 
 
-### download profile
+#### download profile
 
     vpn_stack=$(aws cloudformation list-exports\
       | jq -r ".Exports[] | select(.Name==\"VPNStackName-${stack_name}\").Value")
@@ -88,7 +90,7 @@
       --client-vpn-endpoint-id ${client_vpn_endpoint} | jq -r '.ClientConfiguration' > client.ovpn
 
 
-### connect
+#### connect
 
 * [macOS](https://tunnelblick.net/downloads.html)
 * [Windows/Linux](https://openvpn.net/community-downloads/)
@@ -98,10 +100,10 @@
 ## mock requests
 
 ### Directory Services
+> [Directory Services](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ds.html) API reference
 
 #### AD Connector
-> mock CloudFormation CREATE [request](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ds.html) to create [AD Connector](https://docs.aws.amazon.com/directoryservice/latest/admin-guide/directory_ad_connector.html?icmpid=docs_dirservices_console)
-
+> mock CloudFormation request to create [AD Connector](https://docs.aws.amazon.com/directoryservice/latest/admin-guide/directory_ad_connector.html)
 
     mock_lambda_event=$(echo "{
       \"RequestType\": \"Create\",
@@ -116,7 +118,7 @@
         \"AgentCreateMethod\": \"connect_directory\",
         \"AgentDeleteMethod\": \"delete_directory\",
         \"AgentWaitMethod\": \"describe_directories\",
-        \"AgentWaitQueryExpr\": \"DirectoryDescriptions[*].Stage\",
+        \"AgentWaitQueryExpr\": \"$.DirectoryDescriptions[].Stage\",
         \"AgentWaitCreateQueryValues\": [
             \"Active\"
         ],
