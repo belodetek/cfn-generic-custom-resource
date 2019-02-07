@@ -84,10 +84,10 @@
 #### download profile
 
     vpn_stack=$(aws cloudformation list-exports\
-      | jq -r ".Exports[] | select(.Name=="VPNStackName-${stack_name}").Value")
+      | jq -r ".Exports[] | select(.Name==\"VPNStackName-${stack_name}\").Value")
 
     client_vpn_endpoint=$(aws cloudformation list-exports\
-      | jq -r ".Exports[] | select(.Name | startswith("ClientVpnEndpointId-${vpn_stack}")).Value")
+      | jq -r ".Exports[] | select(.Name | startswith(\"ClientVpnEndpointId-${vpn_stack}\")).Value")
 
     aws ec2 export-client-vpn-client-configuration\
       --client-vpn-endpoint-id ${client_vpn_endpoint} | jq -r '.ClientConfiguration' > client.ovpn
@@ -139,6 +139,13 @@ aws s3api put-bucket-policy\
 * select `(Option 2) IDP metadata`, download and save
 
 
+#### copy metadata
+
+    domain_name='foo.bar'
+
+    aws s3 cp GoogleIDPMetadata-${domain_name}.xml s3://${bucket}/
+
+
 #### package assets
 
     for template in lambda cognito cognito-main; do
@@ -147,13 +154,6 @@ aws s3api put-bucket-policy\
           --s3-bucket ${bucket}\
           --output-template-file ${template}.yaml
     done
-
-
-#### copy metadata
-
-    domain_name='foo.bar'
-
-    aws s3 cp GoogleIDPMetadata-${domain_name}.xml s3://${bucket}/
 
 
 #### deploy stack
@@ -175,14 +175,21 @@ aws s3api put-bucket-policy\
       AccountId=$(aws sts get-caller-identity | jq -r '.Account')
 
 
+    cognito_stack=$(aws cloudformation list-exports\
+      | jq -r ".Exports[] | select(.Name==\"CognitoStackName-${stack_name}\").Value")
+
+    user_pool_id=$(aws cloudformation list-exports\
+      | jq -r ".Exports[] | select(.Name | startswith(\"UserPoolId-${cognito_stack}\")).Value")
+
+
 #### configure G Suite
 > [TBC](https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-pools-configuring-federation-with-saml-2-0-idp.html)
 
 * login to [Google Apps Admin](https://admin.google.com)
 * navigate to `Apps -> SAML Apps --> + --> SETUP MY OWN CUSTOM APP`
-* []()
-* []()
-* [continue with ABL configuration](https://aws.amazon.com/blogs/aws/built-in-authentication-in-alb/)
+* set `ACS URL` to `https://${stack_name}.auth.${AWS_REGION}.amazoncognito.com/saml2/idpresponse`
+* set `Entity ID` to `urn:amazon:cognito:sp:${user_pool_id}`
+* [continue with ALB configuration](https://aws.amazon.com/blogs/aws/built-in-authentication-in-alb/) (out-of-scope)
 
 
 
