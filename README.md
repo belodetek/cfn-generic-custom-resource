@@ -1,6 +1,6 @@
 # cfn-custom-resource-provider
 
-> **TL;DR** because a new Lambda function for each resource CFN doesn't handle gets boring, quickly.
+> **TL;DR** because a new Lambda function for each custom resource is boring 🤓
 
 
 ## CloudFormation
@@ -103,7 +103,7 @@
 ### Cognito demo
 
 #### update bucket policy
-> public read access required for access to `MetadataURL`, adjust as necessary
+> ⚠️ public read access required for access to `MetadataURL`, adjust as necessary
 
 ```
 tmpfile=$(mktemp)
@@ -245,3 +245,6 @@ aws s3api put-bucket-policy\
         }
       }
     }" | jq -c) && ./generic_provider.py "${mock_lambda_event}"
+
+
+>--belodetek 😬
