@@ -1,6 +1,6 @@
 ---
-AWSTemplateFormatVersion: '2010-09-09'
-Description: 'thrive-security-console template'
+AWSTemplateFormatVersion: 2010-09-09
+Description: 'Client VPN demo template'
 
 
 Metadata:
