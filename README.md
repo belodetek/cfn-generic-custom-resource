@@ -198,7 +198,7 @@ aws s3api put-bucket-policy\
 
 
 #### configure G Suite
-> [TBC](https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-pools-configuring-federation-with-saml-2-0-idp.html)
+> [Cognito IdP](https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-pools-configuring-federation-with-saml-2-0-idp.html) with [Google SAML](https://support.google.com/a/answer/6087519?hl=en)
 
 * login to [Google Apps Admin](https://admin.google.com)
 * navigate to `Apps -> SAML Apps --> + --> SETUP MY OWN CUSTOM APP`
