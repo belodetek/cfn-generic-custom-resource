@@ -1,0 +1,187 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: 'Cognito resources'
+
+
+Parameters:
+  NameTag:
+    Type: String
+  CustomResourceLambdaArn:
+    Type: String
+  DomainName:
+    Type: String
+  MetadataURL:
+    Type: String
+
+
+Conditions:
+  HasDomain: !Not [ !Equals [ '', !Ref 'DomainName' ]]
+  HasMetadata: !Not [ !Equals [ '', !Ref 'MetadataURL' ]]
+
+
+Resources:
+  UserPool:
+    Type: 'AWS::Cognito::UserPool'
+    Properties:
+      UserPoolName: !Sub '${NameTag}'
+      Schema:
+      - Name: email
+        Required: true
+        Mutable: true
+      UsernameAttributes:
+      - email
+
+  # https://github.com/ab77/cfn-generic-custom-resource
+  UserPoolDomain:
+    Type: 'Custom::CognitoUserPoolDomain'
+    DependsOn: UserPool
+    Properties:
+      ServiceToken: !Sub '${CustomResourceLambdaArn}'
+      AgentService: cognito-idp
+      AgentType: client
+      # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/cognito-idp.html#CognitoIdentityProvider.Client.create_user_pool_domain
+      AgentCreateMethod: create_user_pool_domain
+      AgentDeleteMethod: delete_user_pool_domain
+      AgentWaitMethod: describe_user_pool_domain
+      AgentWaitQueryExpr: '$.DomainDescription.Status'
+      AgentWaitCreateQueryValues:
+      - ACTIVE
+      AgentWaitResourceId: Domain
+      AgentResourceId: Domain
+      AgentCreateArgs:
+        Domain: !Sub '${NameTag}'
+        UserPoolId: !Sub '${UserPool}'
+      AgentDeleteArgs:
+        Domain: !Sub '${NameTag}'
+        UserPoolId: !Sub '${UserPool}'
+      AgentWaitArgs:
+        Domain: !Sub '${NameTag}'
+
+  UserPoolIdentityProvider:
+    Type: 'Custom::CognitoUserPoolIdentityProvider'
+    Condition: HasMetadata
+    DependsOn: UserPool
+    Properties:
+      ServiceToken: !Sub '${CustomResourceLambdaArn}'
+      AgentService: cognito-idp
+      AgentType: client
+      # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/cognito-idp.html#CognitoIdentityProvider.Client.create_user_pool_domain
+      AgentCreateMethod: create_identity_provider
+      AgentUpdateMethod: update_identity_provider
+      AgentDeleteMethod: delete_identity_provider
+      AgentResourceId: ProviderName
+      AgentCreateArgs:
+        UserPoolId: !Sub '${UserPool}'
+        ProviderName: !Sub '${NameTag}-provider'
+        AttributeMapping:
+          email: emailAddress
+        ProviderDetails:
+          MetadataURL: !Sub '${MetadataURL}'
+          IDPSignout: true
+        ProviderType: SAML
+      AgentUpdateArgs:
+        UserPoolId: !Sub '${UserPool}'
+        ProviderName: !Sub '${NameTag}-provider'
+        AttributeMapping:
+          email: emailAddress
+        ProviderDetails:
+          MetadataURL: !Sub '${MetadataURL}'
+          IDPSignout: true
+        ProviderType: SAML
+      AgentDeleteArgs:
+        UserPoolId: !Sub '${UserPool}'
+        ProviderName: !Sub '${NameTag}-provider'
+
+  UserPoolClient:
+    Type: 'Custom::CognitoUserPoolClientSettings'
+    DependsOn:
+    - UserPool
+    - UserPoolIdentityProvider
+    Properties:
+      ServiceToken: !Sub '${CustomResourceLambdaArn}'
+      AgentService: cognito-idp
+      AgentType: client
+      # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/cognito-idp.html#CognitoIdentityProvider.Client.create_user_pool_client
+      AgentCreateMethod: create_user_pool_client
+      AgentUpdateMethod: update_user_pool_client
+      AgentDeleteMethod: delete_user_pool_client
+      AgentResourceId: ClientId
+      AgentCreateArgs: !Sub |
+        {
+          "UserPoolId": "${UserPool}",
+          "ClientName": "${NameTag}-client",
+          "GenerateSecret": true,
+          "CallbackURLs": [
+            "https://${DomainName}/oauth2/idpresponse"
+          ],
+          "LogoutURLs": [
+            "https://${NameTag}.auth.${AWS::Region}.amazoncognito.com/saml2/logout"
+          ],
+          "SupportedIdentityProviders": [
+            "${NameTag}-provider"
+          ],
+          "AllowedOAuthFlows": [
+            "code"
+          ],
+          "AllowedOAuthScopes": [
+            "openid"
+          ],
+          "AllowedOAuthFlowsUserPoolClient": true,
+          "RefreshTokenValidity": 14
+        }
+      AgentUpdateArgs: !Sub |
+        {
+          "UserPoolId": "${UserPool}",
+          "ClientName": "${NameTag}-client",
+          "GenerateSecret": true,
+          "CallbackURLs": [
+            "https://${DomainName}/oauth2/idpresponse"
+          ],
+          "LogoutURLs": [
+            "https://${NameTag}.auth.${AWS::Region}.amazoncognito.com/saml2/logout"
+          ],
+          "SupportedIdentityProviders": [
+            "${NameTag}-provider"
+          ],
+          "AllowedOAuthFlows": [
+            "code"
+          ],
+          "AllowedOAuthScopes": [
+            "openid"
+          ],
+          "AllowedOAuthFlowsUserPoolClient": true,
+          "RefreshTokenValidity": 14
+        }
+      AgentDeleteArgs:
+        UserPoolId: !Sub '${UserPool}'
+
+
+Outputs:
+  StackName:
+    Value: !Ref 'AWS::StackName'
+    Export:
+      Name: !Sub 'StackName-${AWS::StackName}'
+  UserPoolId:
+    Value: !Ref 'UserPool'
+    Export:
+      Name: !Sub 'UserPoolId-${AWS::StackName}'
+  ProviderName:
+    Value: !Sub '${UserPool.ProviderName}'
+    Export:
+      Name: !Sub 'ProviderName-${AWS::StackName}'
+  ProviderURL:
+    Value: !Sub '${UserPool.ProviderURL}'
+    Export:
+      Name: !Sub 'ProviderURL-${AWS::StackName}'
+  UserPoolArn:
+    Value: !Sub '${UserPool.Arn}'
+    Export:
+      Name: !Sub 'UserPoolArn-${AWS::StackName}'
+  UserPoolClientId:
+    Value: !Sub '${UserPoolClient}'
+    Export:
+      Name: !Sub 'UserPoolClientId-${AWS::StackName}'
+  UserPoolDomain:
+    Value: !Sub '${NameTag}.auth.${AWS::Region}.amazoncognito.com'
+    Export:
+      Name: !Sub 'UserPoolDomain-${AWS::StackName}'

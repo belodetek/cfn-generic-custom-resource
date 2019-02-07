@@ -1,0 +1,87 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: 'Cognito demo'
+
+
+Metadata:
+  'AWS::CloudFormation::Interface':
+    ParameterGroups:
+    - Label:
+        default: 'Common parameters'
+      Parameters:
+      - TimeoutInMinutes
+      - NotificationTopic
+    - Label:
+        default: 'Cognito parameters'
+      Parameters:
+      - MetadataURL
+      - DomainName
+
+
+Parameters:
+  DomainName:
+    Type: String
+    Description: 'Specify domain name Application Load Balancer domain name.'
+    Default: ''
+  MetadataURL:
+    Type: String
+    Description: 'Specify SAML metadata URL.'
+    Default: ''
+  NotificationTopic:
+    Description: 'Specify optional SNS topic for initial CloudFormation event notifications.'
+    Type: String
+    Default: ''
+  TimeoutInMinutes:
+    Description: 'Specify optional timeout in minutes for stack creation.'
+    Type: Number
+    Default: 60
+
+
+Conditions:
+  HasNotify: !Not [ !Equals [ '', !Ref 'NotificationTopic' ]]
+
+
+Resources:
+  LambdaStack:
+    Type: 'AWS::CloudFormation::Stack'
+    Properties:
+      TemplateURL: ./lambda.yaml
+      Parameters:
+        NameTag: !Sub '${AWS::StackName}'
+      NotificationARNs:
+      - !If [ HasNotify, !Ref 'NotificationTopic', !Ref 'AWS::NoValue' ]
+      TimeoutInMinutes: !Ref 'TimeoutInMinutes'
+      Tags:
+      - Key: Name
+        Value: !Sub '${AWS::StackName}'
+
+  CognitoStack:
+    Type: 'AWS::CloudFormation::Stack'
+    Properties:
+      TemplateURL: ./cognito.yaml
+      Parameters:
+        NameTag: !Sub '${AWS::StackName}'
+        CustomResourceLambdaArn: !GetAtt [ LambdaStack, Outputs.CustomResourceLambdaArn ]
+        DomainName: !Sub '${AWS::StackName}.${DomainName}'
+        MetadataURL: !Sub '${MetadataURL}'
+      NotificationARNs:
+      - !If [ HasNotify, !Ref 'NotificationTopic', !Ref 'AWS::NoValue' ]
+      TimeoutInMinutes: !Ref 'TimeoutInMinutes'
+      Tags:
+      - Key: Name
+        Value: !Sub '${AWS::StackName}'
+
+
+Outputs:
+  StackName:
+    Value: !Ref 'AWS::StackName'
+    Export:
+      Name: !Sub 'StackName-${AWS::StackName}'
+  LambdaStack:
+    Value: !GetAtt [ LambdaStack, Outputs.StackName ]
+    Export:
+      Name: !Sub 'LambdaStackName-${AWS::StackName}'
+  CognitoStack:
+    Value: !GetAtt [ CognitoStack, Outputs.StackName ]
+    Export:
+      Name: !Sub 'CognitoStackName-${AWS::StackName}'

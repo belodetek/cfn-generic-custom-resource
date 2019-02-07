@@ -1,5 +1,9 @@
 .DS_Store
 main.yaml
 lambda.yaml
+client-vpn-main.yaml
 client-vpn.yaml
+cognito-main.yaml
+cognito.yaml
 *.ovpn
+*.xml

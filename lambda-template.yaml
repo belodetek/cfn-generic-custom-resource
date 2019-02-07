@@ -38,7 +38,15 @@ Resources:
             Action:
             - 'ec2:*ClientVpn*'
             Resource: '*'
-
+      - PolicyName: AmazonCognitoPolicy
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - 'cognito-idp:*UserPool*'
+            - 'cognito-idp:*IdentityProvider'
+            Resource: '*'
 
   CustomResourceLambda:
     Type: 'AWS::Lambda::Function'

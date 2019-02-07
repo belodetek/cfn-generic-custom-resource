@@ -50,12 +50,21 @@ def wait_event(agent, event, create=False, update=False, delete=False):
             agent_kwargs = {}
     try:
         agent_resource_id = event[resource_key]['AgentWaitResourceId']
-        if type(agent_resource_id) == list:
-            agent_kwargs[agent_resource_id[0]] = [event['PhysicalResourceId']]
-        else:
-            agent_kwargs[agent_resource_id] = event['PhysicalResourceId']
     except:
-        pass
+        agent_resource_id = None
+    if agent_resource_id:
+        try:
+            if type(agent_resource_id) == list:
+                agent_kwargs[agent_resource_id[0]] = [event['PhysicalResourceId']]
+                assert agent_kwargs[agent_resource_id[0]]
+            else:
+                agent_kwargs[agent_resource_id] = event['PhysicalResourceId']
+                assert agent_kwargs[agent_resource_id]
+        except:
+            try:
+                agent_kwargs[agent_resource_id] = event[resource_key]['AgentWaitArgs'][agent_resource_id]
+            except:
+                pass
     try:
         agent_method = event[resource_key]['AgentWaitMethod']
     except:
@@ -75,17 +84,11 @@ def wait_event(agent, event, create=False, update=False, delete=False):
         except:
             agent_attr = None
 
+    print('agent_method={}, agent_kwargs={}, agent_attr={} agent_resource_id={}'.format(
+        agent_method, agent_kwargs, agent_attr, agent_resource_id
+    ))
+
     if waiter:
-        print(
-            'agent_method={}, agent_kwargs={}, waiter={} create={} update={} delete={}'.format(
-                agent_method,
-                agent_kwargs,
-                waiter,
-                create,
-                update,
-                delete
-            )
-        )
         waiter.wait(**agent_kwargs)
 
     if agent_attr and agent_query_expr and agent_query_value is not None:
@@ -94,20 +97,14 @@ def wait_event(agent, event, create=False, update=False, delete=False):
         while True:
             response = agent_attr(**agent_kwargs)
             match = jsonpath(response, agent_query_expr)
-            print(
-                'agent_method={}, agent_kwargs={}, agent_attr={} agent_query_expr={} agent_query_value={} match={} create={} update={} delete={}'.format(
-                    agent_method,
-                    agent_kwargs,
-                    agent_attr,
-                    agent_query_expr,
-                    agent_query_value,
-                    match,
-                    create,
-                    update,
-                    delete
-                )
-            )
-
+            print('agent_query_expr={} agent_query_value={} match={} create={} update={} delete={}'.format(
+                agent_query_expr,
+                agent_query_value,
+                match,
+                create,
+                update,
+                delete
+            ))
             if match is not None and response and (match == agent_query_value or not match): break
             sleep(default_wait)
 
@@ -133,12 +130,15 @@ def handle_event(agent, event, create=False, update=False, delete=False):
     try:
         agent_resource_id = event[resource_key]['AgentResourceId']
     except:
-        pass
-    if update or delete:
+        agent_resource_id = None
+    if agent_resource_id:
         try:
             agent_kwargs[agent_resource_id] = event['PhysicalResourceId']
         except:
-            pass
+            try:
+                agent_kwargs[agent_resource_id] = event[resource_key][args_key][agent_resource_id]
+            except:
+                pass
     try:
         agent_method = event[resource_key][method_key]
     except:
@@ -149,18 +149,16 @@ def handle_event(agent, event, create=False, update=False, delete=False):
         print_exc()
         agent_attr = None
     if agent_attr:
+        print('agent_method={}, agent_kwargs={}, agent_attr={} agent_resource_id={}'.format(
+            agent_method, agent_kwargs, agent_attr, agent_resource_id
+        ))
         response = agent_attr(**agent_kwargs)
-        print(
-            'agent_method={}, agent_kwargs={}, agent_attr={} response={} create={} update={} delete={}'.format(
-                agent_method,
-                agent_kwargs,
-                agent_attr,
-                response,
-                create,
-                update,
-                delete
-            )
-        )
+        print('response={} create={} update={} delete={}'.format(
+            response,
+            create,
+            update,
+            delete
+        ))
         wait_event(agent, event, create=create, update=update, delete=delete)
         try:
             responseData = response
@@ -169,7 +167,16 @@ def handle_event(agent, event, create=False, update=False, delete=False):
         try:
             PhysicalResourceId = response[agent_resource_id]
         except:
-            PhysicalResourceId = str(uuid4())
+            try:
+                PhysicalResourceId = jsonpath(response, '$..{}'.format(agent_resource_id))
+                assert PhysicalResourceId
+                PhysicalResourceId = ''.join(PhysicalResourceId)
+            except:
+                try:
+                    PhysicalResourceId = event[resource_key][args_key][agent_resource_id]
+                    assert PhysicalResourceId
+                except:
+                    PhysicalResourceId = str(uuid4())
         if create:
             print(
                 'PhysicalResourceId={} responseData={}'.format(
