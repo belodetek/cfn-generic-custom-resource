@@ -1,12 +1,12 @@
 # cfn-custom-resource-provider
 
-> **TL;DR** because a new Lambda function for each custom resource is boring 🤓
+> **TL;DR** because a new Lambda function for each custom resource is not DevOps 🤓
 
 
 ## CloudFormation
 > Generic CloudFormation [Custom Resources](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/template-custom-resources.html) provider.
 
-### ClientVPN demo
+### Client VPN demo
 
 #### init
 
@@ -20,14 +20,29 @@
 #### certificates
 > [issue](https://docs.aws.amazon.com/vpn/latest/clientvpn-admin/authentication-authrization.html) certificates with [easy-rsa](https://github.com/OpenVPN/easy-rsa)
 
+    domain_name='foo.bar'
+
+
+    pushd easy-rsa/easyrsa3
+
+    ./easyrsa init-pki
+
+    ./easyrsa build-ca nopass
+
+    ./easyrsa build-server-full server.${domain_name} nopass
+
+    ./easyrsa build-client-full client1.${domain_name} nopass
+
+    popd
+
     server_certificate=$(aws acm import-certificate\
-      --certificate file://easy-rsa/easyrsa3/pki/issued/server.crt\
-      --private-key file://easy-rsa/easyrsa3/pki/private/server.key\
+      --certificate file://easy-rsa/easyrsa3/pki/issued/server.${domain_name}.crt\
+      --private-key file://easy-rsa/easyrsa3/pki/private/server.${domain_name}.key\
       --certificate-chain file://easy-rsa/easyrsa3/pki/ca.crt | jq -r '.CertificateArn')
 
     client_certificate=$(aws acm import-certificate\
-      --certificate file://easy-rsa/easyrsa3/pki/issued/client1.crt\
-      --private-key file://easy-rsa/easyrsa3/pki/private/client1.key\
+      --certificate file://easy-rsa/easyrsa3/pki/issued/client1.${domain_name}.crt\
+      --private-key file://easy-rsa/easyrsa3/pki/private/client1.${domain_name}.key\
       --certificate-chain file://easy-rsa/easyrsa3/pki/ca.crt | jq -r '.CertificateArn')
 
 
@@ -40,7 +55,7 @@
 
 
 #### package assets
-> creates a new bucket with a random GUID
+> ⚠️ creates a new bucket with a random GUID
 
     bucket=$(uuid)
     aws s3 mb s3://${bucket}
@@ -245,6 +260,7 @@ aws s3api put-bucket-policy\
         }
       }
     }" | jq -c) && ./generic_provider.py "${mock_lambda_event}"
+
 
 
 >--belodetek 😬
