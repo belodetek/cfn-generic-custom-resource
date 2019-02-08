@@ -10,11 +10,9 @@
 
 #### init
 
-    git clone https://github.com/ab77/cfn-generic-custom-resource
-
-    git pull --recurse-submodules
-
-    git submodule update --remote --recursive
+    git clone https://github.com/ab77/cfn-generic-custom-resource\
+      && git pull --recurse-submodules\
+      && git submodule update --remote --recursive
 
 
 #### certificates
@@ -29,9 +27,8 @@
 
     ./easyrsa build-ca nopass
 
-    ./easyrsa build-server-full server.${domain_name} nopass
-
-    ./easyrsa build-client-full client1.${domain_name} nopass
+    ./easyrsa build-server-full server.${domain_name} nopass\
+      && ./easyrsa build-client-full client1.${domain_name} nopass
 
     popd
 
