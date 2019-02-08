@@ -6,17 +6,32 @@
 ## CloudFormation
 > Generic CloudFormation [Custom Resources](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/template-custom-resources.html) provider.
 
-### Client VPN demo
-
-#### init
+### init
 
     git clone https://github.com/ab77/cfn-generic-custom-resource\
       && git pull --recurse-submodules\
       && git submodule update --remote --recursive
 
 
+### create bucket
+> ⚠️ creates a new bucket with a random GUID
+
+    bucket=$(uuid)
+    aws s3 mb s3://${bucket}
+
+
+#### install requirements
+> 📝 Lambda provided boto3 doesn't support Client VPN resources at the time of writing
+
+    pushd generic_provider\
+      && pip install --upgrade -r requirements.txt -t .\
+      && popd
+
+
+### Client VPN demo
+
 #### certificates
-> [issue](https://docs.aws.amazon.com/vpn/latest/clientvpn-admin/authentication-authrization.html) certificates with [easy-rsa](https://github.com/OpenVPN/easy-rsa)
+> [issue](https://docs.aws.amazon.com/vpn/latest/clientvpn-admin/authentication-authrization.html) certificates with [easy-rsa](https://github.com/OpenVPN/easy-rsa) and upload to ACM
 
     domain_name='foo.bar'
 
@@ -43,20 +58,7 @@
       --certificate-chain file://easy-rsa/easyrsa3/pki/ca.crt | jq -r '.CertificateArn')
 
 
-#### install requirements
-> Lambda provided boto3 doesn't support Client VPN resources at the time of writing
-
-    pushd generic_provider\
-      && pip install --upgrade -r requirements.txt -t .\
-      && popd
-
-
 #### package assets
-> ⚠️ creates a new bucket with a random GUID
-
-    bucket=$(uuid)
-    aws s3 mb s3://${bucket}
-
 
     for template in lambda client-vpn client-vpn-main; do
         aws cloudformation package\
@@ -106,13 +108,13 @@
 
 
 #### connect
-
 * [macOS](https://tunnelblick.net/downloads.html)
 * [Windows/Linux](https://openvpn.net/community-downloads/)
 
 
 
 ### Cognito demo
+> 📝 make sure to [create bucket](#create-bucket) and [install requirements](#install-requirements) first
 
 #### update bucket policy
 > ⚠️ public read access required for access to `MetadataURL`, adjust as necessary
