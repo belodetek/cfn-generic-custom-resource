@@ -1,27 +1,28 @@
 # cfn-custom-resource-provider
 
-> **TL;DR** because a new Lambda function for each custom resource is not DevOps 🤓
+> **TL;DR** one Custom Resource provider to rule them all 🤓
 
 
 ## CloudFormation
-> Generic CloudFormation [Custom Resources](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/template-custom-resources.html) provider.
+> Generic CloudFormation [Custom Resources](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/template-custom-resources.html) provider. All shell-fu is Bash; `git`, `pip`, `awscli` and `jq` required.
 
 ### init
 
     git clone https://github.com/ab77/cfn-generic-custom-resource\
+      && cd cfn-generic-custom-resource\
       && git pull --recurse-submodules\
       && git submodule update --remote --recursive
 
 
 ### create bucket
-> 📝 creates a new bucket with a random GUID; ensure `~/.aws/credentials` and `~/.aws/config` are configured and at least  `AWS_PROFILE` and `AWS_REGION` environment variables are exported
+> 📝 creates a new bucket with a random GUID; ensure `~/.aws/credentials` and `~/.aws/config` are configured (run `aws configure ...`) and export `AWS_PROFILE` and `AWS_REGION` environment variables
 
     bucket=$(uuid)
     aws s3 mb s3://${bucket}
 
 
 #### install requirements
-> 📝 Lambda provided boto3 doesn't support Client VPN resources at the time of writing
+> 📝 AWS Lambda provided boto3 library doesn't support Client VPN resources at the time of writing, so we need to package it with the code
 
     pushd generic_provider\
       && pip install --upgrade -r requirements.txt -t .\
@@ -32,7 +33,7 @@
 > ☢️ beware of the currently eye-watering Client VPN [pricing](https://aws.amazon.com/vpn/pricing/)
 
 #### certificates
-> [issue](https://docs.aws.amazon.com/vpn/latest/clientvpn-admin/authentication-authrization.html) certificates with [easy-rsa](https://github.com/OpenVPN/easy-rsa) and upload to ACM
+> 📜 [issue](https://docs.aws.amazon.com/vpn/latest/clientvpn-admin/authentication-authrization.html) certificates with [easy-rsa](https://github.com/OpenVPN/easy-rsa) and upload to ACM, using fictional domain `foo.bar`
 
     domain_name='foo.bar'
 
@@ -60,8 +61,9 @@
 
 
 #### package assets
+> 📦 package CloudFormation templates and Lambda function(s) and upload to S3
 
-    for template in lambda client-vpn client-vpn-main; do
+for template in lambda client-vpn client-vpn-main; do
         aws cloudformation package\
           --template-file ${template}-template.yaml\
           --s3-bucket ${bucket}\
@@ -70,7 +72,7 @@
 
 
 #### deploy stack
-> 📝  creates `certificate-authentication` endpoint, for `directory-service-authentication` or both, specify additional `DirectoryId` parameter
+> 📝  creates Client VPN endpoint with `certificate-authentication`; for `directory-service-authentication` or both, specify additional `DirectoryId` parameter
 
     stack_name='client-vpn-demo'
     vpc_id=vpc-abcdef1234567890
@@ -198,18 +200,23 @@ aws s3api put-bucket-policy\
       | jq -r ".Exports[] | select(.Name | startswith(\"UserPoolId-${cognito_stack}\")).Value")
 
 
+    echo "ACS URL: https://${stack_name}.auth.${AWS_REGION}.amazoncognito.com/saml2/idpresponse"
+    echo "Entity ID: urn:amazon:cognito:sp:${user_pool_id}"
+
+
 #### configure G Suite
 > [Cognito IdP](https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-pools-configuring-federation-with-saml-2-0-idp.html) with [Google SAML](https://support.google.com/a/answer/6087519?hl=en)
 
 * login to [Google Apps Admin](https://admin.google.com)
 * navigate to `Apps -> SAML Apps --> + --> SETUP MY OWN CUSTOM APP`
-* set `ACS URL` to `https://${stack_name}.auth.${AWS_REGION}.amazoncognito.com/saml2/idpresponse`
-* set `Entity ID` to `urn:amazon:cognito:sp:${user_pool_id}`
-* [continue with ALB configuration](https://aws.amazon.com/blogs/aws/built-in-authentication-in-alb/) (out-of-scope)
+* set `ACS URL` as per above
+* set `Entity ID` as per above
+* continue with [ALB configuration](https://aws.amazon.com/blogs/aws/built-in-authentication-in-alb/)
 
 
 
 ## mock requests
+> 🐞 useful to debug resource creation locally
 
 ### Directory Services
 > [Directory Services](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ds.html) API reference
@@ -260,7 +267,10 @@ aws s3api put-bucket-policy\
           }
         }
       }
-    }" | jq -c) && ./generic_provider.py "${mock_lambda_event}"
+    }" | jq -c)\
+    && pushd generic_provider\
+    && ./generic_provider.py "${mock_lambda_event}"\
+    && popd
 
 
 
