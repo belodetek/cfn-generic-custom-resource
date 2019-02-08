@@ -14,7 +14,7 @@
 
 
 ### create bucket
-> ⚠️ creates a new bucket with a random GUID
+> 📝 creates a new bucket with a random GUID; ensure `~/.aws/credentials` and `~/.aws/config` are configured and at least  `AWS_PROFILE` and `AWS_REGION` environment variables are exported
 
     bucket=$(uuid)
     aws s3 mb s3://${bucket}
