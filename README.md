@@ -1,6 +1,6 @@
 # cfn-custom-resource-provider
 
-> **TL;DR** one Custom Resource provider to rule them all 🤓
+> **TL;DR** One *Custom Resource provider* to Rule Them All 🤓
 
 
 ## CloudFormation
