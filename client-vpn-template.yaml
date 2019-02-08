@@ -16,14 +16,33 @@ Parameters:
     Type: String
   SubnetCount:
     Type: String
+  AuthType:
+    Type: String
   ServerCertificateArn:
     Type: String
   ClientRootCertificateChainArn:
+    Type: String
+  DirectoryId:
+    Type: String
+  AccessGroupId:
     Type: String
 
 
 Conditions:
   HasVPC: !Not [ !Equals [ '', !Ref 'VpcId' ]]
+  HasPKI: !And
+  - !Not [ !Equals [ '', !Ref 'ServerCertificateArn' ]]
+  - !Not [ !Equals [ '', !Ref 'ClientRootCertificateChainArn' ]]
+  HasDSAuth: !And
+  - !Not [ !Equals [ '', !Ref 'DirectoryId' ]]
+  - !Equals [ 'directory-service-authentication', !Ref 'AuthType' ]
+  HasPKIAuth: !And
+  - !Equals [ 'certificate-authentication', !Ref 'AuthType' ]
+  - !Condition HasPKI
+  HasBothAuth: !And
+  - !Condition HasPKIAuth
+  - !Condition HasDSAuth
+  HasAccessGroup: !Not [ !Equals [ '', !Ref 'AccessGroupId' ]]
   Has1Subnet: !And
   - !Equals [ 1, !Ref 'SubnetCount' ]
   - !Not [ !Equals [ '', !Ref 'SubnetIds' ]]
@@ -63,28 +82,82 @@ Resources:
       AgentResourceId: ClientVpnEndpointId
       # ship AgentCreateArgs as JSON string to ensure correct boolean handling
       # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2.html#EC2.Client.create_client_vpn_endpoint
-      AgentCreateArgs: !Sub |
+      AgentCreateArgs: !If
+      - HasPKIAuth
+      - !Sub |
         {
-          "ClientCidrBlock": "${ClientCidrBlock}",
-          "ServerCertificateArn": "${ServerCertificateArn}",
-          "AuthenticationOptions": [
-            {
-              "Type": "certificate-authentication",
-              "MutualAuthentication": {
-                "ClientRootCertificateChainArn": "${ClientRootCertificateChainArn}"
+            "ClientCidrBlock": "${ClientCidrBlock}",
+            "ServerCertificateArn": "${ServerCertificateArn}",
+            "AuthenticationOptions": [
+              {
+                "Type": "certificate-authentication",
+                "MutualAuthentication": {
+                  "ClientRootCertificateChainArn": "${ClientRootCertificateChainArn}"
+                }
               }
+            ],
+            "ConnectionLogOptions": {
+              "Enabled": false
+            },
+            "DnsServers": [
+              "1.1.1.1",
+              "1.0.0.1"
+            ],
+            "TransportProtocol": "udp",
+            "Description": "${NameTag} client VPN endpoint."
+          }
+      - !If
+        - HasDSAuth
+        - !Sub |
+            {
+              "ClientCidrBlock": "${ClientCidrBlock}",
+              "ServerCertificateArn": "${ServerCertificateArn}",
+              "AuthenticationOptions": [
+                {
+                  "Type": "directory-service-authentication",
+                  "ActiveDirectory": {
+                    "DirectoryId": "${DirectoryId}"
+                  }
+                }
+              ],
+              "ConnectionLogOptions": {
+                "Enabled": false
+              },
+              "DnsServers": [
+                "1.1.1.1",
+                "1.0.0.1"
+              ],
+              "TransportProtocol": "udp",
+              "Description": "${NameTag} client VPN endpoint."
             }
-          ],
-          "ConnectionLogOptions": {
-            "Enabled": false
-          },
-          "DnsServers": [
-            "1.1.1.1",
-            "1.0.0.1"
-          ],
-          "TransportProtocol": "udp",
-          "Description": "${NameTag} client VPN endpoint."
-        }
+        - !If
+          - HasBothAuth
+          - !Sub |
+              {
+                "ClientCidrBlock": "${ClientCidrBlock}",
+                "ServerCertificateArn": "${ServerCertificateArn}",
+                "AuthenticationOptions": [
+                  {
+                    "Type": "directory-service-authentication",
+                    "ActiveDirectory": {
+                      "DirectoryId": "${DirectoryId}"
+                    },
+                    "MutualAuthentication": {
+                      "ClientRootCertificateChainArn": "${ClientRootCertificateChainArn}"
+                    }
+                  }
+                ],
+                "ConnectionLogOptions": {
+                  "Enabled": false
+                },
+                "DnsServers": [
+                  "1.1.1.1",
+                  "1.0.0.1"
+                ],
+                "TransportProtocol": "udp",
+                "Description": "${NameTag} client VPN endpoint."
+              }
+          - '{}'
 
   AssociateSubnetOne:
     Type: 'Custom::SubnetOneAssociation'
@@ -228,14 +301,19 @@ Resources:
       AgentWaitCreateQueryValues:
       - active
       AgentWaitDeleteQueryValues: []
-      AgentCreateArgs: !Sub |
-        {
-          "ClientVpnEndpointId": "${ClientVPNEndpoint}",
-          "TargetNetworkCidr": "0.0.0.0/0",
-          "AuthorizeAllGroups": true,
-          "Description": "${NameTag} client VPN ingress."
-
-        }
+      AgentCreateArgs: !If
+      - HasAccessGroup
+      - ClientVpnEndpointId: !Sub '${ClientVPNEndpoint}'
+        TargetNetworkCidr: '0.0.0.0/0'
+        AccessGroupId: !Sub '${AccessGroupId}'
+        Description: !Sub '${NameTag} client VPN ingress.'
+      - !Sub |
+          {
+            "ClientVpnEndpointId": "${ClientVPNEndpoint}",
+            "TargetNetworkCidr": "0.0.0.0/0",
+            "AuthorizeAllGroups": true,
+            "Description": "${NameTag} client VPN ingress."
+          }
       AgentDeleteArgs: !Sub |
         {
           "ClientVpnEndpointId": "${ClientVPNEndpoint}",
@@ -263,14 +341,19 @@ Resources:
       AgentWaitCreateQueryValues:
       - active
       AgentWaitDeleteQueryValues: []
-      AgentCreateArgs: !Sub |
-        {
-          "ClientVpnEndpointId": "${ClientVPNEndpoint}",
-          "TargetNetworkCidr": "0.0.0.0/0",
-          "AuthorizeAllGroups": true,
-          "Description": "${NameTag} client VPN ingress."
-
-        }
+      AgentCreateArgs: !If
+      - HasAccessGroup
+      - ClientVpnEndpointId: !Sub '${ClientVPNEndpoint}'
+        TargetNetworkCidr: '0.0.0.0/0'
+        AccessGroupId: !Sub '${AccessGroupId}'
+        Description: !Sub '${NameTag} client VPN ingress.'
+      - !Sub |
+          {
+            "ClientVpnEndpointId": "${ClientVPNEndpoint}",
+            "TargetNetworkCidr": "0.0.0.0/0",
+            "AuthorizeAllGroups": true,
+            "Description": "${NameTag} client VPN ingress."
+          }
       AgentDeleteArgs: !Sub |
         {
           "ClientVpnEndpointId": "${ClientVPNEndpoint}",
@@ -299,14 +382,19 @@ Resources:
       AgentWaitCreateQueryValues:
       - active
       AgentWaitDeleteQueryValues: []
-      AgentCreateArgs: !Sub |
-        {
-          "ClientVpnEndpointId": "${ClientVPNEndpoint}",
-          "TargetNetworkCidr": "0.0.0.0/0",
-          "AuthorizeAllGroups": true,
-          "Description": "${NameTag} client VPN ingress."
-
-        }
+      AgentCreateArgs: !If
+      - HasAccessGroup
+      - ClientVpnEndpointId: !Sub '${ClientVPNEndpoint}'
+        TargetNetworkCidr: '0.0.0.0/0'
+        AccessGroupId: !Sub '${AccessGroupId}'
+        Description: !Sub '${NameTag} client VPN ingress.'
+      - !Sub |
+          {
+            "ClientVpnEndpointId": "${ClientVPNEndpoint}",
+            "TargetNetworkCidr": "0.0.0.0/0",
+            "AuthorizeAllGroups": true,
+            "Description": "${NameTag} client VPN ingress."
+          }
       AgentDeleteArgs: !Sub |
         {
           "ClientVpnEndpointId": "${ClientVPNEndpoint}",
@@ -336,14 +424,19 @@ Resources:
       AgentWaitCreateQueryValues:
       - active
       AgentWaitDeleteQueryValues: []
-      AgentCreateArgs: !Sub |
-        {
-          "ClientVpnEndpointId": "${ClientVPNEndpoint}",
-          "TargetNetworkCidr": "0.0.0.0/0",
-          "AuthorizeAllGroups": true,
-          "Description": "${NameTag} client VPN ingress."
-
-        }
+      AgentCreateArgs: !If
+      - HasAccessGroup
+      - ClientVpnEndpointId: !Sub '${ClientVPNEndpoint}'
+        TargetNetworkCidr: '0.0.0.0/0'
+        AccessGroupId: !Sub '${AccessGroupId}'
+        Description: !Sub '${NameTag} client VPN ingress.'
+      - !Sub |
+          {
+            "ClientVpnEndpointId": "${ClientVPNEndpoint}",
+            "TargetNetworkCidr": "0.0.0.0/0",
+            "AuthorizeAllGroups": true,
+            "Description": "${NameTag} client VPN ingress."
+          }
       AgentDeleteArgs: !Sub |
         {
           "ClientVpnEndpointId": "${ClientVPNEndpoint}",

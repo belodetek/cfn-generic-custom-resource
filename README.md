@@ -69,6 +69,7 @@
 
 
 #### deploy stack
+> 📝  creates `certificate-authentication` endpoint, for `directory-service-authentication` or both, specify additional `DirectoryId` parameter
 
     stack_name='client-vpn-demo'
     vpc_id=vpc-abcdef1234567890

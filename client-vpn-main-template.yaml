@@ -18,6 +18,9 @@ Metadata:
       - SubnetIds
       - SubnetCount
       - CidrBlock
+      - AuthType
+      - DirectoryId
+      - AccessGroupId
       - ServerCertificateArn
       - ClientRootCertificateChainArn
 
@@ -39,6 +42,13 @@ Parameters:
     Description: 'Specify second octet in RFC1918 172.[16-31].0.0/22 block.'
     Type: String
     AllowedPattern: ^(^172\.1[6-9]\.0\.0\/22)|(^172\.2[0-9]\.0\.0\/22)|(^172\.3[0-1]\.0\.0\/22)$
+  AuthType:
+    Description: 'Specify client VPN authentication type.'
+    Type: String
+    Default: 'certificate-authentication'
+    AllowedValues:
+    - 'certificate-authentication'
+    - 'directory-service-authentication'
   ServerCertificateArn:
     Description: 'Specify server certificate ARN in ACM.'
     Type: String
@@ -46,6 +56,14 @@ Parameters:
   ClientRootCertificateChainArn:
     Description: 'Specify client certificate ARN in ACM.'
     Type: String
+    Default: ''
+  DirectoryId:
+    Type: String
+    Description: 'Specify Directory Services directory ID.'
+    Default: ''
+  AccessGroupId:
+    Type: String
+    Description: 'Specify the ID of the Active Directory group to grant access.'
     Default: ''
   NotificationTopic:
     Description: 'Specify optional SNS topic for initial CloudFormation event notifications.'
@@ -59,9 +77,13 @@ Parameters:
 
 Conditions:
   HasNotify: !Not [ !Equals [ '', !Ref 'NotificationTopic' ]]
-  HasVPN: !And
+  HasPKI: !And
   - !Not [ !Equals [ '', !Ref 'ServerCertificateArn' ]]
   - !Not [ !Equals [ '', !Ref 'ClientRootCertificateChainArn' ]]
+  HasDS: !Not [ !Equals [ '', !Ref 'DirectoryId' ]]
+  HasVPN: !Or
+  - !Condition HasPKI
+  - !Condition HasDS
 
 
 Resources:
@@ -90,8 +112,11 @@ Resources:
         VpcId: !Sub '${VpcId}'
         SubnetIds: !Sub '${SubnetIds}'
         SubnetCount: !Sub '${SubnetCount}'
+        AuthType: !Sub '${AuthType}'
         ServerCertificateArn: !Sub '${ServerCertificateArn}'
         ClientRootCertificateChainArn: !Sub '${ClientRootCertificateChainArn}'
+        DirectoryId: !Sub '${DirectoryId}'
+        AccessGroupId: !Sub '${AccessGroupId}'
       NotificationARNs:
       - !If [ HasNotify, !Ref 'NotificationTopic', !Ref 'AWS::NoValue' ]
       TimeoutInMinutes: !Ref 'TimeoutInMinutes'
