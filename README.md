@@ -63,7 +63,7 @@
 #### package assets
 > 📦 package CloudFormation templates and Lambda function(s) and upload to S3
 
-for template in lambda client-vpn client-vpn-main; do
+    for template in lambda client-vpn client-vpn-main; do
         aws cloudformation package\
           --template-file ${template}-template.yaml\
           --s3-bucket ${bucket}\
