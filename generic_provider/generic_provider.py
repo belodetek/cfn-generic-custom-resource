@@ -5,6 +5,7 @@ import boto3
 import json
 import os
 import sys
+
 from uuid import uuid4
 from jsonpath import jsonpath
 from time import sleep
@@ -31,16 +32,34 @@ def wait_event(agent, event, create=False, update=False, delete=False):
             agent_query_value = event[resource_key]['AgentWaitUpdateQueryValues']
         except:
             agent_query_value = None
+        try:
+            agent_exceptions = []
+            for ex in event[resource_key]['AgentWaitUpdateExceptions']:
+                agent_exceptions.append(eval(ex))
+        except:
+            agent_exceptions = None
     if create:
         try:
             agent_query_value = event[resource_key]['AgentWaitCreateQueryValues']
         except:
             agent_query_value = None
+        try:
+            agent_exceptions = []
+            for ex in event[resource_key]['AgentWaitCreateExceptions']:
+                agent_exceptions.append(eval(ex))
+        except:
+            agent_exceptions = None
     if delete:
         try:
             agent_query_value = event[resource_key]['AgentWaitDeleteQueryValues']
         except:
             agent_query_value = None
+        try:
+            agent_exceptions = []
+            for ex in event[resource_key]['AgentWaitDeleteExceptions']:
+                agent_exceptions.append(eval(ex))
+        except:
+            agent_exceptions = None
     try:
         agent_kwargs = json.loads(event[resource_key]['AgentWaitArgs'])
     except:
@@ -84,18 +103,33 @@ def wait_event(agent, event, create=False, update=False, delete=False):
         except:
             agent_attr = None
 
-    print('agent_method={}, agent_kwargs={}, agent_attr={} agent_resource_id={}'.format(
-        agent_method, agent_kwargs, agent_attr, agent_resource_id
+    print('agent_method={}, agent_kwargs={}, agent_attr={} agent_resource_id={} agent_exceptions={}'.format(
+        agent_method, agent_kwargs, agent_attr, agent_resource_id, agent_exceptions
     ))
 
     if waiter:
-        waiter.wait(**agent_kwargs)
+        if agent_pass_exceptions:
+            try:
+                waiter.wait(**agent_kwargs)
+            except tuple(agent_exceptions) as e:
+                print('passing exception={}'.format(repr(e)))
+                print_exc()
+        else:
+            waiter.wait(**agent_kwargs)
 
     if agent_attr and agent_query_expr and agent_query_value is not None:
         response = {}
         match = None
         while True:
-            response = agent_attr(**agent_kwargs)
+            if agent_pass_exceptions:
+                try:
+                    response = agent_attr(**agent_kwargs)
+                except tuple(agent_exceptions) as e:
+                    print('passing exception={}'.format(repr(e)))
+                    print_exc()
+            else:
+                response = agent_attr(**agent_kwargs)
+            
             match = jsonpath(response, agent_query_expr)
             print('agent_query_expr={} agent_query_value={} match={} create={} update={} delete={}'.format(
                 agent_query_expr,
@@ -113,13 +147,16 @@ def handle_event(agent, event, create=False, update=False, delete=False):
     resource_key = 'ResourceProperties'
     args_key = 'AgentCreateArgs'
     method_key = 'AgentCreateMethod'
+    exceptions_key = 'AgentCreateExceptions'
     if update:
         resource_key = 'OldResourceProperties'
         args_key = 'AgentUpdateArgs'
         method_key = 'AgentUpdateMethod'
+        exceptions_key = 'AgentUpdateExceptions'
     if delete:
         args_key = 'AgentDeleteArgs'
         method_key = 'AgentDeleteMethod'
+        exceptions_key = 'AgentDeleteExceptions'
     try:
         agent_kwargs = json.loads(event[resource_key][args_key])
     except:
@@ -140,6 +177,12 @@ def handle_event(agent, event, create=False, update=False, delete=False):
             except:
                 pass
     try:
+        agent_exceptions = []
+        for ex in event[resource_key][exceptions_key]:
+            agent_exceptions.append(eval(ex))
+    except:
+        agent_exceptions = None
+    try:
         agent_method = event[resource_key][method_key]
     except:
         agent_method = None
@@ -149,10 +192,18 @@ def handle_event(agent, event, create=False, update=False, delete=False):
         print_exc()
         agent_attr = None
     if agent_attr:
-        print('agent_method={}, agent_kwargs={}, agent_attr={} agent_resource_id={}'.format(
-            agent_method, agent_kwargs, agent_attr, agent_resource_id
+        response = {}
+        print('agent_method={}, agent_kwargs={}, agent_attr={} agent_resource_id={} agent_exceptions={}'.format(
+            agent_method, agent_kwargs, agent_attr, agent_resource_id, agent_exceptions
         ))
-        response = agent_attr(**agent_kwargs)
+        if agent_exceptions:
+            try:
+                response = agent_attr(**agent_kwargs)
+            except tuple(agent_exceptions) as e:
+                print('passing exception={}'.format(repr(e)))
+                print_exc()
+        else:
+            response = agent_attr(**agent_kwargs)
         print('response={} create={} update={} delete={}'.format(
             response,
             create,
@@ -225,7 +276,10 @@ def lambda_handler(event=None, context=None):
 
     try:
         agent_service = event['ResourceProperties']['AgentService']
-        agent_type = event['ResourceProperties']['AgentType']
+        try:
+            agent_type = event['ResourceProperties']['AgentType']
+        except:
+            agent_type = 'client'
         StackId = event['StackId']
         ResponseURL = event['ResponseURL']
         RequestType = event['RequestType']
@@ -315,5 +369,11 @@ def lambda_handler(event=None, context=None):
 
 
 if __name__ == '__main__':
-    event = json.loads(sys.argv[1])
+    try:
+        event = json.loads(sys.argv[1])
+    except:
+        try:
+            event = json.loads(sys.stdin.read())
+        except:
+            sys.exit(1)
     lambda_handler(event=event)

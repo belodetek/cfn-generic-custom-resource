@@ -273,5 +273,53 @@ aws s3api put-bucket-policy\
     && popd
 
 
+### IAM
+> [IAM](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/iam.html) API reference
+
+#### SSH public key
+> mock CloudFormation request to [upload](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/iam.html#IAM.Client.upload_ssh_public_key) SSH public key
+
+    pushd generic_provider
+    echo "{
+      \"RequestType\": \"Create\",
+      \"ResponseURL\": \"https://cloudformation-custom-resource-response-${AWS_REGION}.s3.amazonaws.com/\",
+      \"StackId\": \"arn:aws:cloudformation:${AWS_REGION}:$(aws sts get-caller-identity | jq -r '.Account'):stack/MockStack/$(uuid)\",
+      \"RequestId\": \"$(uuid)\",
+      \"ResourceType\": \"Custom::MockResource\",
+      \"LogicalResourceId\": \"MockResource\",
+      \"ResourceProperties\": {
+          \"AgentCreateArgs\": {
+              \"UserName\": \"foo-bar\",
+              \"SSHPublicKeyBody\": \"$(cat ~/.ssh/id_rsa.pub | head -n 1)\"
+          },
+          \"AgentType\": \"client\",
+          \"AgentUpdateMethod\": \"update_ssh_public_key\",
+          \"AgentUpdateExceptions\": [
+              \"agent.exceptions.DuplicateSSHPublicKeyException\"
+          ],
+          \"AgentWaitResourceId\": \"SSHPublicKeyId\",
+          \"AgentService\": \"iam\",
+          \"AgentUpdateArgs\": {
+              \"Status\": \"Active\",
+              \"UserName\": \"foo-bar\",
+              \"SSHPublicKeyBody\": \"$(cat ~/.ssh/id_rsa.pub | head -n 1)\"
+          },
+          \"AgentCreateMethod\": \"upload_ssh_public_key\",
+          \"AgentCreateExceptions\": [
+              \"agent.exceptions.DuplicateSSHPublicKeyException\"
+          ],
+          \"AgentResourceId\": \"SSHPublicKeyId\",
+          \"AgentDeleteArgs\": {
+            \"UserName\": \"foo-bar\"
+          },
+          \"AgentDeleteMethod\": \"delete_ssh_public_key\",
+          \"AgentDeleteExceptions\": [
+              \"agent.exceptions.DuplicateSSHPublicKeyException\"
+          ]
+      }
+    }" | jq -c) | ./generic_provider.py
+    popd
+
+
 
 >--belodetek 😬

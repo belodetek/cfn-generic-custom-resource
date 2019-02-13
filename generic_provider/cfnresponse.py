@@ -12,11 +12,15 @@ SUCCESS = "SUCCESS"
 FAILED = "FAILED"
 
 def send(event, context, responseStatus, responseData=None, physicalResourceId=None, noEcho=False):
+    try:
+        log_stream_name = context.log_stream_name
+    except:
+        log_stream_name = '__mock__'
     responseUrl = event['ResponseURL']
     responseBody = {}
     responseBody['Status'] = responseStatus
-    responseBody['Reason'] = 'See the details in CloudWatch Log Stream: ' + context.log_stream_name
-    responseBody['PhysicalResourceId'] = physicalResourceId or context.log_stream_name
+    responseBody['Reason'] = 'See the details in CloudWatch Log Stream: ' + log_stream_name
+    responseBody['PhysicalResourceId'] = physicalResourceId or log_stream_name
     responseBody['StackId'] = event['StackId']
     responseBody['RequestId'] = event['RequestId']
     responseBody['LogicalResourceId'] = event['LogicalResourceId']
@@ -33,9 +37,11 @@ def send(event, context, responseStatus, responseData=None, physicalResourceId=N
     }
 
     try:
-        response = requests.put(responseUrl,
-                                data=json_responseBody,
-                                headers=headers)
+        response = requests.put(
+            responseUrl,
+            data=json_responseBody,
+            headers=headers
+        )
         print("Status code: " + response.reason)
     except Exception as e:
         print("send(..) failed executing requests.put(..): " + str(e))
