@@ -324,7 +324,7 @@ aws s3api put-bucket-policy\
 ### KMS
 > [IAM](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/kms.html) API reference
 
-#### encryot
+#### encrypt
 > mock CloudFormation request to [encrypt](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/kms.html#KMS.Client.encrypt) with KMS
 
     pushd generic_provider
