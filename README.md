@@ -317,7 +317,7 @@ aws s3api put-bucket-policy\
               \"agent.exceptions.DuplicateSSHPublicKeyException\"
           ]
       }
-    }" | jq -c) | ./generic_provider.py
+    }" | jq -c | ./generic_provider.py
     popd
 
 
