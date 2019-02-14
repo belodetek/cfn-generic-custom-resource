@@ -394,5 +394,31 @@ aws s3api put-bucket-policy\
     popd
 
 
+#### modify-subnet-attribute
+> mock CloudFormation request to [modify](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2.html#EC2.Client.modify_subnet_attribute) subnet attribute(s)
+
+    pushd generic_provider
+    echo "{
+      \"RequestType\": \"Create\",
+      \"ResponseURL\": \"https://cloudformation-custom-resource-response-${AWS_REGION}.s3.amazonaws.com/\",
+      \"StackId\": \"arn:aws:cloudformation:${AWS_REGION}:$(aws sts get-caller-identity | jq -r '.Account'):stack/MockStack/$(uuid)\",
+      \"RequestId\": \"$(uuid)\",
+      \"ResourceType\": \"Custom::MockResource\",
+      \"LogicalResourceId\": \"MockResource\",
+      \"ResourceProperties\": {
+          \"AgentType\": \"client\",
+          \"AgentService\": \"ec2\",
+          \"AgentCreateMethod\": \"modify_subnet_attribute\",
+          \"AgentCreateArgs\": {
+              \"MapPublicIpOnLaunch\": {
+                  \"Value\": true
+              },
+              \"SubnetId\": \"subnet-abcdef1234567890\"
+          }
+      }
+    }" | jq -c | ./generic_provider.py
+    popd
+
+
 
 >--belodetek 😬
