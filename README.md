@@ -348,5 +348,51 @@ aws s3api put-bucket-policy\
     popd
 
 
+### EC2
+> [EC2](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2.html) API reference
+
+#### encryot
+> mock CloudFormation request to [tag](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2.html#EC2.ServiceResource.create_tags) resources
+
+    pushd generic_provider
+    echo "{
+      \"RequestType\": \"Create\",
+      \"ResponseURL\": \"https://cloudformation-custom-resource-response-${AWS_REGION}.s3.amazonaws.com/\",
+      \"StackId\": \"arn:aws:cloudformation:${AWS_REGION}:$(aws sts get-caller-identity | jq -r '.Account'):stack/MockStack/$(uuid)\",
+      \"RequestId\": \"$(uuid)\",
+      \"ResourceType\": \"Custom::MockResource\",
+      \"LogicalResourceId\": \"MockResource\",
+      \"ResourceProperties\": {
+          \"AgentType\": \"client\",
+          \"AgentService\": \"ec2\",
+          \"AgentCreateMethod\": \"create_tags\",
+          \"AgentCreateArgs\": {
+              \"Resources\": [
+                  \"eipalloc-12345677890\"
+              ],
+              \"Tags\": [
+                  {
+                      \"Key\": \"foo\",
+                      \"Value\": \"bar\"
+                  }
+              ]
+          },
+          \"AgentDeleteMethod\": \"delete_tags\",
+          \"AgentDeleteArgs\": {
+              \"Resources\": [
+                  \"eipalloc-12345677890\"
+              ],
+              \"Tags\": [
+                  {
+                      \"Key\": \"foo\",
+                      \"Value\": \"bar\"
+                  }
+              ]
+          }
+      }
+    }" | jq -c | ./generic_provider.py
+    popd
+
+
 
 >--belodetek 😬
