@@ -244,7 +244,7 @@ def handle_event(agent, event, create=False, update=False, delete=False):
                 )
             )
             return responseData
-    return (str(uuid4()), {})
+    return {}
 
 
 def lambda_handler(event=None, context=None):
