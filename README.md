@@ -321,5 +321,32 @@ aws s3api put-bucket-policy\
     popd
 
 
+### KMS
+> [IAM](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/kms.html) API reference
+
+#### encryot
+> mock CloudFormation request to [encrypt](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/kms.html#KMS.Client.encrypt) with KMS
+
+    pushd generic_provider
+    echo "{
+      \"RequestType\": \"Create\",
+      \"ResponseURL\": \"https://cloudformation-custom-resource-response-${AWS_REGION}.s3.amazonaws.com/\",
+      \"StackId\": \"arn:aws:cloudformation:${AWS_REGION}:$(aws sts get-caller-identity | jq -r '.Account'):stack/MockStack/$(uuid)\",
+      \"RequestId\": \"$(uuid)\",
+      \"ResourceType\": \"Custom::MockResource\",
+      \"LogicalResourceId\": \"MockResource\",
+      \"ResourceProperties\": {
+          \"AgentCreateArgs\": {
+              \"KeyId\": \"arn:aws:kms:${AWS_REGION}:$(aws sts get-caller-identity | jq -r '.Account'):key/$(uuid)\",
+              \"Plaintext\": \"foo-bar\"
+          },
+          \"AgentType\": \"client\",
+          \"AgentService\": \"kms\",
+          \"AgentCreateMethod\": \"encrypt\"
+      }
+    }" | jq -c | ./generic_provider.py
+    popd
+
+
 
 >--belodetek 😬
