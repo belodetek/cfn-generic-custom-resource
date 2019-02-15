@@ -296,7 +296,10 @@ def lambda_handler(event=None, context=None):
         pass
 
     kwargs = {}
-    kwargs['region_name'] = region
+    try:
+        kwargs['region_name'] = event['ResourceProperties']['AgentRegion']
+    except:
+        kwargs['region_name'] = region
 
     try:
         RoleArn = event['ResourceProperties']['RoleArn']
@@ -305,15 +308,18 @@ def lambda_handler(event=None, context=None):
             RoleArn=RoleArn,
             RoleSessionName=str(uuid4())
         )
-        kwargs['aws_access_key_id'] = response['Credentials']['AccessKeyId'],
-        kwargs['aws_secret_access_key'] = response['Credentials']['SecretAccessKey'],
+        print('response={}'.format(response))
+        kwargs['aws_access_key_id'] = response['Credentials']['AccessKeyId']
+        kwargs['aws_secret_access_key'] = response['Credentials']['SecretAccessKey']
         kwargs['aws_session_token'] = response['Credentials']['SessionToken']
-        print(client.get_caller_identity())
+        print('get_caller_identity={}'.format(client.get_caller_identity()))
     except:
         if not profile:
             kwargs['aws_access_key_id'] = os.getenv('AWS_ACCESS_KEY_ID')
             kwargs['aws_secret_access_key'] = os.getenv('AWS_SECRET_ACCESS_KEY')
             kwargs['aws_session_token'] = os.getenv('AWS_SESSION_TOKEN')
+
+    print('kwargs={}'.format(kwargs))
 
     responseData = {}
 

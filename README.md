@@ -394,6 +394,64 @@ aws s3api put-bucket-policy\
     popd
 
 
+
+####
+> mock CloudFormation request to [authorize_security_group_ingress](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2.html#EC2.Client.authorize_security_group_ingress) in another account
+
+    pushd generic_provider
+    echo "{
+      \"RequestType\": \"Create\",
+      \"ResponseURL\": \"https://cloudformation-custom-resource-response-${AWS_REGION}.s3.amazonaws.com/\",
+      \"StackId\": \"arn:aws:cloudformation:${AWS_REGION}:$(aws sts get-caller-identity | jq -r '.Account'):stack/MockStack/$(uuid)\",
+      \"RequestId\": \"$(uuid)\",
+      \"ResourceType\": \"Custom::MockResource\",
+      \"LogicalResourceId\": \"MockResource\",
+      \"ResourceProperties\": {
+          \"AgentType\": \"client\",
+          \"AgentService\": \"ec2\",
+          \"RoleArn\": \"arn:aws:iam::1234567890:role/CrossAccountRole\",
+          \"AgentRegion\": \"us-east-1\",
+          \"AgentCreateMethod\": \"authorize_security_group_ingress\",
+          \"AgentCreateArgs\": {
+              \"GroupId\": \"sg-1234567890abcdef\",
+              \"IpPermissions\": [
+                  {
+                      \"FromPort\": 22,
+                      \"IpProtocol\": \"tcp\",
+                      \"IpRanges\": [
+                          {
+                              \"CidrIp\": \"172.16.0.0/16\",
+                              \"Description\": \"foo-bar\"
+                          }
+
+                      ],
+                      \"ToPort\": 22
+                  }
+              ]
+          },
+          \"AgentDeleteMethod\": \"revoke_security_group_ingress\",
+          \"AgentDeleteArgs\": {
+              \"GroupId\": \"sg-1234567890abcdef\",
+              \"IpPermissions\": [
+                  {
+                      \"FromPort\": 22,
+                      \"IpProtocol\": \"tcp\",
+                      \"IpRanges\": [
+                          {
+                              \"CidrIp\": \"172.16.0.0/16\",
+                              \"Description\": \"foo-bar\"
+                          }
+
+                      ],
+                      \"ToPort\": 22
+                  }
+              ]
+          }
+      }
+    }" | jq -c | ./generic_provider.py
+    popd
+
+
 #### modify-subnet-attribute
 > mock CloudFormation request to [modify](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2.html#EC2.Client.modify_subnet_attribute) subnet attribute(s)
 
