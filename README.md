@@ -215,7 +215,7 @@ aws s3api put-bucket-policy\
 
 
 
-## mock requests
+## mock client requests
 > 🐞 useful to debug resource creation locally
 
 ### Directory Services
@@ -415,6 +415,36 @@ aws s3api put-bucket-policy\
               },
               \"SubnetId\": \"subnet-abcdef1234567890\"
           }
+      }
+    }" | jq -c | ./generic_provider.py
+    popd
+
+
+
+## mock resources requests
+
+> [EC2](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2.html) API reference
+
+#### network-interfaces-attribute
+> mock CloudFormation request to [obtain](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2.html#EC2.Instance.network_interfaces_attribute) instance public IPv6 address
+
+     pushd generic_provider
+     echo "{
+      \"RequestType\": \"Create\",
+      \"ResponseURL\": \"https://cloudformation-custom-resource-response-${AWS_REGION}.s3.amazonaws.com/\",
+      \"StackId\": \"arn:aws:cloudformation:${AWS_REGION}:$(aws sts get-caller-identity | jq -r '.Account'):stack/MockStack/$(uuid)\",
+      \"RequestId\": \"$(uuid)\",
+      \"ResourceType\": \"Custom::MockResource\",
+      \"LogicalResourceId\": \"MockResource\",
+      \"ResourceProperties\": {
+        \"AgentService\": \"ec2\",
+        \"AgentType\": \"resource\",
+        \"AgentWaitQueryExpr\": \"$..Ipv6Address\",
+        \"AgentResourceId\": \"network_interfaces_attribute\",
+        \"AgentCreateArgs\": {
+          \"ResourceName\": \"Instance\",
+          \"ResourceId\": \"i-abcdef1234567890\"
+        }
       }
     }" | jq -c | ./generic_provider.py
     popd

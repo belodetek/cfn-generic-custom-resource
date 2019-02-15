@@ -143,7 +143,7 @@ def wait_event(agent, event, create=False, update=False, delete=False):
             sleep(default_wait)
 
 
-def handle_event(agent, event, create=False, update=False, delete=False):
+def handle_client_event(agent, event, create=False, update=False, delete=False):
     resource_key = 'ResourceProperties'
     args_key = 'AgentCreateArgs'
     method_key = 'AgentCreateMethod'
@@ -229,22 +229,60 @@ def handle_event(agent, event, create=False, update=False, delete=False):
                 except:
                     PhysicalResourceId = str(uuid4())
         if create:
-            print(
-                'PhysicalResourceId={} responseData={}'.format(
-                    PhysicalResourceId,
-                    responseData
-                )
-            )
+            print('PhysicalResourceId={} responseData={}'.format(
+                PhysicalResourceId,
+                responseData
+            ))
             return (PhysicalResourceId, responseData)
         else:
-            print(
-                'PhysicalResourceId={} responseData={}'.format(
-                    event['PhysicalResourceId'],
-                    responseData
-                )
-            )
+            print('PhysicalResourceId={} responseData={}'.format(
+                event['PhysicalResourceId'],
+                responseData
+            ))
             return responseData
     return {}
+
+
+def handle_resource_event(agent, event):
+    PhysicalResourceId = str(uuid4())
+    responseData = {}
+    resource_key = 'ResourceProperties'
+    try:
+        agent_resource_id = event[resource_key]['AgentResourceId']
+    except:
+        agent_resource_id = None
+    try:
+        agent_kwargs = json.loads(event[resource_key]['AgentCreateArgs'])
+    except:
+        try:
+            agent_kwargs = event[resource_key]['AgentCreateArgs']
+        except:
+            agent_kwargs = {}    
+    try:
+        agent_query_expr = event[resource_key]['AgentWaitQueryExpr']
+    except:
+        agent_query_expr = None
+    try:
+        agent_attr = getattr(agent, agent_kwargs['ResourceName'])
+    except:
+        print_exc()
+        agent_attr = None
+
+    print('agent_kwargs={}, agent_query_expr={}, agent_attr={} agent_resource_id={}'.format(
+        agent_kwargs, agent_query_expr, agent_attr, agent_resource_id
+    ))
+    assert agent_attr and agent_resource_id and agent_query_expr
+    resource = agent_attr(agent_kwargs['ResourceId'])
+    if agent_resource_id in dir(resource):
+        response = eval('resource.{}'.format(agent_resource_id))
+    match = jsonpath(response, agent_query_expr)
+    print('response={} match={}'.format(response, match))
+    try:
+        assert match
+        responseData[agent_kwargs['ResourceName']] = ','.join(match)
+    except:
+        pass
+    return (PhysicalResourceId, responseData)
 
 
 def lambda_handler(event=None, context=None):
@@ -287,15 +325,27 @@ def lambda_handler(event=None, context=None):
         ResourceType = event['ResourceType']
         RequestId = event['RequestId']
         LogicalResourceId = event['LogicalResourceId']
-        if agent_type == 'client': agent = session.client(agent_service, **kwargs)
-        if agent_type == 'resource': agent = session.resource(agent_service, **kwargs)
+        if agent_type == 'client':
+            agent = session.client(agent_service, **kwargs)
+        if agent_type == 'resource':
+            try:
+                agent = session.resource(agent_service, **kwargs)
+                (physicalResourceId, responseData) = handle_resource_event(agent, event)
+                assert physicalResourceId and responseData
+                cfnresponse.send(
+                    event,
+                    context,
+                    cfnresponse.SUCCESS,
+                    responseData=responseData,
+                    physicalResourceId=physicalResourceId
+                )
+            except:
+                print_exc()
+                cfnresponse.send(event, context, cfnresponse.FAILED)
+            return
     except:
         print_exc()
-        cfnresponse.send(
-            event,
-            context,
-            cfnresponse.FAILED
-        )
+        cfnresponse.send(event, context,cfnresponse.FAILED)
         return
 
 
@@ -303,7 +353,7 @@ def lambda_handler(event=None, context=None):
         deleted and a new one is created. No backups are taken, possible loss of data.'''
     if RequestType == 'Update':
         try:
-            responseData = handle_event(agent, event, update=True)
+            responseData = handle_client_event(agent, event, update=True)
             if responseData:
                 cfnresponse.send(
                     event,
@@ -315,11 +365,7 @@ def lambda_handler(event=None, context=None):
                 return
         except:
             print_exc()
-            cfnresponse.send(
-                event,
-                context,
-                cfnresponse.FAILED
-            )
+            cfnresponse.send(event, context, cfnresponse.FAILED)
             return
 
 
@@ -327,7 +373,7 @@ def lambda_handler(event=None, context=None):
         if RequestType == 'Delete' or continues to (re)reate resource.'''
     if RequestType in ['Update', 'Delete']:
         try:
-            responseData = handle_event(agent, event, delete=True)
+            responseData = handle_client_event(agent, event, delete=True)
             if RequestType == 'Delete':
                 cfnresponse.send(
                     event,
@@ -339,18 +385,14 @@ def lambda_handler(event=None, context=None):
                 return
         except:
             print_exc()
-            cfnresponse.send(
-                event,
-                context,
-                cfnresponse.FAILED
-            )
+            cfnresponse.send(event, context, cfnresponse.FAILED)
             return
 
 
     ''' Create: (re)creates a resource and returns PhysicalResourceId based on
         the specified AgentResourceId.'''
     try:
-        (PhysicalResourceId, responseData) = handle_event(agent, event, create=True)
+        (PhysicalResourceId, responseData) = handle_client_event(agent, event, create=True)
         cfnresponse.send(
             event,
             context,
@@ -361,11 +403,7 @@ def lambda_handler(event=None, context=None):
         return
     except:
         print_exc()
-        cfnresponse.send(
-            event,
-            context,
-            cfnresponse.FAILED
-        )
+        cfnresponse.send(event, context, cfnresponse.FAILED)
         return
 
 
