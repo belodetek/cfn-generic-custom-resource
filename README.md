@@ -440,7 +440,8 @@ aws s3api put-bucket-policy\
         \"AgentService\": \"ec2\",
         \"AgentType\": \"resource\",
         \"AgentWaitQueryExpr\": \"$..Ipv6Address\",
-        \"AgentResourceId\": \"network_interfaces_attribute\",
+        \"AgentResourceId\": \"Ipv6Address\",
+        \"AgentCreateMethod\": \"network_interfaces_attribute\",
         \"AgentCreateArgs\": {
           \"ResourceName\": \"Instance\",
           \"ResourceId\": \"i-abcdef1234567890\"

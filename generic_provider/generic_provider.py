@@ -248,6 +248,10 @@ def handle_resource_event(agent, event):
     responseData = {}
     resource_key = 'ResourceProperties'
     try:
+        agent_property = event[resource_key]['AgentCreateMethod']
+    except:
+        agent_property = None
+    try:
         agent_resource_id = event[resource_key]['AgentResourceId']
     except:
         agent_resource_id = None
@@ -268,18 +272,18 @@ def handle_resource_event(agent, event):
         print_exc()
         agent_attr = None
 
-    print('agent_kwargs={}, agent_query_expr={}, agent_attr={} agent_resource_id={}'.format(
-        agent_kwargs, agent_query_expr, agent_attr, agent_resource_id
+    print('agent_kwargs={}, agent_query_expr={}, agent_attr={} agent_resource_id={} agent_property={}'.format(
+        agent_kwargs, agent_query_expr, agent_attr, agent_resource_id, agent_property
     ))
-    assert agent_attr and agent_resource_id and agent_query_expr
+    assert agent_attr and agent_resource_id and agent_query_expr and agent_property
     resource = agent_attr(agent_kwargs['ResourceId'])
-    if agent_resource_id in dir(resource):
-        response = eval('resource.{}'.format(agent_resource_id))
+    if agent_property in dir(resource):
+        response = eval('resource.{}'.format(agent_property))
     match = jsonpath(response, agent_query_expr)
     print('response={} match={}'.format(response, match))
     try:
         assert match
-        responseData[agent_kwargs['ResourceName']] = ','.join(match)
+        responseData[agent_resource_id] = ','.join(match)
     except:
         pass
     return (PhysicalResourceId, responseData)
