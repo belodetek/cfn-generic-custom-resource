@@ -395,7 +395,7 @@ aws s3api put-bucket-policy\
 
 
 
-####
+#### authorize-security-group-ingress
 > mock CloudFormation request to [authorize_security_group_ingress](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2.html#EC2.Client.authorize_security_group_ingress) in another account
 
     pushd generic_provider
