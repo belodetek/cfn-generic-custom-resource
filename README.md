@@ -478,6 +478,31 @@ aws s3api put-bucket-policy\
     popd
 
 
+#### get-parameter
+> mock CloudFormation request to [get](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ssm.html#SSM.Client.get_parameter) SSM parameter
+
+    pushd generic_provider
+    echo "{
+      \"RequestType\": \"Create\",
+      \"ResponseURL\": \"https://cloudformation-custom-resource-response-${AWS_REGION}.s3.amazonaws.com/\",
+      \"StackId\": \"arn:aws:cloudformation:${AWS_REGION}:$(aws sts get-caller-identity | jq -r '.Account'):stack/MockStack/$(uuid)\",
+      \"RequestId\": \"$(uuid)\",
+      \"ResourceType\": \"Custom::MockResource\",
+      \"LogicalResourceId\": \"MockResource\",
+      \"ResourceProperties\": {
+          \"AgentType\": \"client\",
+          \"AgentService\": \"ssm\",
+          \"AgentCreateMethod\": \"get_parameter\",
+          \"AgentResourceId\": \"Value\",
+          \"AgentCreateArgs\": {
+              \"Name\": \"/foo/bar\",
+              \"WithDecryption\": true
+          }
+      }
+    }" | jq -c | ./generic_provider.py
+    popd
+
+
 
 ## mock resources requests
 
