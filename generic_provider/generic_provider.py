@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import cfnresponse
+import botocore
 import boto3
 import json
 import os
@@ -177,6 +178,10 @@ def handle_client_event(agent, event, create=False, update=False, delete=False):
             except:
                 pass
     try:
+        agent_query_expr = event[resource_key]['AgentWaitQueryExpr']
+    except:
+        agent_query_expr = None
+    try:
         agent_exceptions = []
         for ex in event[resource_key][exceptions_key]:
             agent_exceptions.append(eval(ex))
@@ -219,7 +224,7 @@ def handle_client_event(agent, event, create=False, update=False, delete=False):
             PhysicalResourceId = response[agent_resource_id]
         except:
             try:
-                PhysicalResourceId = jsonpath(response, '$..{}'.format(agent_resource_id))
+                PhysicalResourceId = jsonpath(response, agent_query_expr)
                 assert PhysicalResourceId
                 PhysicalResourceId = ''.join(PhysicalResourceId)
             except:

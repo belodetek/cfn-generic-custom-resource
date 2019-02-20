@@ -493,7 +493,7 @@ aws s3api put-bucket-policy\
           \"AgentType\": \"client\",
           \"AgentService\": \"ssm\",
           \"AgentCreateMethod\": \"get_parameter\",
-          \"AgentResourceId\": \"Value\",
+          \"AgentWaitQueryExpr\": \"$.Parameter.Value\",
           \"AgentCreateArgs\": {
               \"Name\": \"/foo/bar\",
               \"WithDecryption\": true
