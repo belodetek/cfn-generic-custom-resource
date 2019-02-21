@@ -398,6 +398,7 @@ def lambda_handler(event=None, context=None):
                     physicalResourceId=event['PhysicalResourceId']
                 )
                 return
+            event['ResourceProperties'].pop('AgentResourceId', None)
         except:
             print_exc()
             cfnresponse.send(event, context, cfnresponse.FAILED)

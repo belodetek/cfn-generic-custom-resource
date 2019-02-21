@@ -288,34 +288,19 @@ aws s3api put-bucket-policy\
       \"ResourceType\": \"Custom::MockResource\",
       \"LogicalResourceId\": \"MockResource\",
       \"ResourceProperties\": {
+          \"AgentType\": \"client\",
+          \"AgentService\": \"iam\",
+          \"AgentResourceId\": \"SSHPublicKeyId\",
+          \"AgentWaitQueryExpr\": \"$.SSHPublicKey.SSHPublicKeyId\",
+          \"AgentCreateMethod\": \"upload_ssh_public_key\",
           \"AgentCreateArgs\": {
               \"UserName\": \"foo-bar\",
               \"SSHPublicKeyBody\": \"$(cat ~/.ssh/id_rsa.pub | head -n 1)\"
           },
-          \"AgentType\": \"client\",
-          \"AgentUpdateMethod\": \"update_ssh_public_key\",
-          \"AgentUpdateExceptions\": [
-              \"agent.exceptions.DuplicateSSHPublicKeyException\"
-          ],
-          \"AgentWaitResourceId\": \"SSHPublicKeyId\",
-          \"AgentService\": \"iam\",
-          \"AgentUpdateArgs\": {
-              \"Status\": \"Active\",
-              \"UserName\": \"foo-bar\",
-              \"SSHPublicKeyBody\": \"$(cat ~/.ssh/id_rsa.pub | head -n 1)\"
-          },
-          \"AgentCreateMethod\": \"upload_ssh_public_key\",
-          \"AgentCreateExceptions\": [
-              \"agent.exceptions.DuplicateSSHPublicKeyException\"
-          ],
-          \"AgentResourceId\": \"SSHPublicKeyId\",
+          \"AgentDeleteMethod\": \"delete_ssh_public_key\",
           \"AgentDeleteArgs\": {
             \"UserName\": \"foo-bar\"
-          },
-          \"AgentDeleteMethod\": \"delete_ssh_public_key\",
-          \"AgentDeleteExceptions\": [
-              \"agent.exceptions.DuplicateSSHPublicKeyException\"
-          ]
+          }
       }
     }" | jq -c | ./generic_provider.py
     popd
