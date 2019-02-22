@@ -336,6 +336,38 @@ aws s3api put-bucket-policy\
 ### Database Migration Service
 > [DMS](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/dms.html) API reference
 
+#### describe-replication-tasks
+> mock CloudFormation request to [describe](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/dms.html#DatabaseMigrationService.Client.describe_replication_tasks) running replication tasks
+
+    pushd generic_provider
+    echo "{
+      \"RequestType\": \"Create\",
+      \"ResponseURL\": \"https://cloudformation-custom-resource-response-${AWS_REGION}.s3.amazonaws.com/\",
+      \"StackId\": \"arn:aws:cloudformation:${AWS_REGION}:$(aws sts get-caller-identity | jq -r '.Account'):stack/MockStack/$(uuid)\",
+      \"RequestId\": \"$(uuid)\",
+      \"ResourceType\": \"Custom::MockResource\",
+      \"LogicalResourceId\": \"MockResource\",
+      \"PhysicalResourceId\": \"MockResource\",
+      \"ResourceProperties\": {
+        \"AgentService\": \"dms\",
+        \"AgentType\": \"client\",
+        \"AgentCreateMethod\": \"describe_replication_tasks\",
+        \"AgentCreateArgs\": {
+          \"Filters\": [
+            {
+              \"Name\": \"replication-instance-arn\",
+              \"Values\": [
+                \"arn:aws:dms:us-west-2:313347522657:rep:ABCDEFGHIJKLMNOPQRSTUVWXYZ\"
+              ]
+            }
+          ]
+        },
+        \"AgentWaitQueryExpr\": \"$.ReplicationTasks[?(@.Status=='running')].ReplicationTaskArn\"
+      }
+    }" | jq -c | ./generic_provider.py
+    popd
+
+
 #### stop-replication-task
 > mock CloudFormation request to [stop](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/dms.html#DatabaseMigrationService.Client.stop_replication_task) replication task
 

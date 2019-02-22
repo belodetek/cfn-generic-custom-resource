@@ -15,6 +15,7 @@ from retrying import retry
 
 
 default_wait = 5    # seconds
+verbose = bool(int(os.getenv('VERBOSE', 0)))
 region = os.getenv('AWS_REGION')
 profile = os.getenv('AWS_PROFILE')
 
@@ -103,12 +104,12 @@ def wait_event(agent, event, create=False, update=False, delete=False):
         waiter = getattr(agent, 'get_waiter')(agent_method)
         agent_attr = None
     except:
-        print_exc()
+        if verbose: print_exc()
         waiter = None
         try:
             agent_attr = getattr(agent, agent_method)
         except:
-            print_exc()
+            if verbose: print_exc()
             agent_attr = None
 
     if no_echo == 'false':
@@ -122,7 +123,7 @@ def wait_event(agent, event, create=False, update=False, delete=False):
                 waiter.wait(**agent_kwargs)
             except tuple(agent_exceptions) as e:
                 print('passing exception={}'.format(repr(e)))
-                print_exc()
+                if verbose: print_exc()
         else:
             waiter.wait(**agent_kwargs)
             return
@@ -136,7 +137,7 @@ def wait_event(agent, event, create=False, update=False, delete=False):
                     response = agent_attr(**agent_kwargs)
                 except tuple(agent_exceptions) as e:
                     print('passing exception={}'.format(repr(e)))
-                    print_exc()
+                    if verbose: print_exc()
             else:
                 response = agent_attr(**agent_kwargs)
             
@@ -201,7 +202,7 @@ def handle_client_event(agent, event, create=False, update=False, delete=False):
         for ex in event[resource_key][exceptions_key]:
             agent_exceptions.append(eval(ex))
     except:
-        print_exc()
+        if verbose: print_exc()
         agent_exceptions = None
     try:
         agent_method = event[resource_key][method_key]
@@ -210,7 +211,7 @@ def handle_client_event(agent, event, create=False, update=False, delete=False):
     try:
         agent_attr = getattr(agent, agent_method)
     except:
-        print_exc()
+        if verbose: print_exc()
         agent_attr = None
     if agent_attr:
         response = {}
@@ -223,7 +224,7 @@ def handle_client_event(agent, event, create=False, update=False, delete=False):
                 response = agent_attr(**agent_kwargs)
             except tuple(agent_exceptions) as e:
                 print('passing exception={}'.format(repr(e)))
-                print_exc()
+                if verbose: print_exc()
         else:
             response = agent_attr(**agent_kwargs)
         if no_echo == 'false':
@@ -246,6 +247,7 @@ def handle_client_event(agent, event, create=False, update=False, delete=False):
                 assert PhysicalResourceId
                 PhysicalResourceId = ','.join(PhysicalResourceId)
             except:
+                if verbose: print_exc()
                 try:
                     PhysicalResourceId = event[resource_key][args_key][agent_resource_id]
                     assert PhysicalResourceId
@@ -298,7 +300,7 @@ def handle_resource_event(agent, event):
     try:
         agent_attr = getattr(agent, agent_kwargs['ResourceName'])
     except:
-        print_exc()
+        if verbose: print_exc()
         agent_attr = None
 
     if no_echo == 'false':
@@ -391,11 +393,11 @@ def lambda_handler(event=None, context=None):
                     noEcho=no_echo
                 )
             except:
-                print_exc()
+                if verbose: print_exc()
                 cfnresponse.send(event, context, cfnresponse.FAILED, noEcho=no_echo)
             return
     except:
-        print_exc()
+        if verbose: print_exc()
         cfnresponse.send(event, context,cfnresponse.FAILED, noEcho=no_echo)
         return
 
@@ -416,7 +418,7 @@ def lambda_handler(event=None, context=None):
                 )
                 return
         except:
-            print_exc()
+            if verbose: print_exc()
             cfnresponse.send(event, context, cfnresponse.FAILED, noEcho=no_echo)
             return
 
@@ -438,7 +440,7 @@ def lambda_handler(event=None, context=None):
                 return
             event['ResourceProperties'].pop('AgentResourceId', None)
         except:
-            print_exc()
+            if verbose: print_exc()
             cfnresponse.send(event, context, cfnresponse.FAILED, noEcho=no_echo)
             return
 
@@ -457,7 +459,7 @@ def lambda_handler(event=None, context=None):
         )
         return
     except:
-        print_exc()
+        if verbose: print_exc()
         cfnresponse.send(event, context, cfnresponse.FAILED, noEcho=no_echo)
         return
 
