@@ -336,7 +336,7 @@ aws s3api put-bucket-policy\
 ### Database Migration Service
 > [DMS](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/dms.html) API reference
 
-#### create-tags
+#### stop-replication-task
 > mock CloudFormation request to [stop](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/dms.html#DatabaseMigrationService.Client.stop_replication_task) replication task
 
     pushd generic_provider
