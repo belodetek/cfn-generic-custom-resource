@@ -11,6 +11,7 @@ from uuid import uuid4
 from jsonpath import jsonpath
 from time import sleep
 from traceback import print_exc
+from retrying import retry
 
 
 default_wait = 5    # seconds
@@ -27,6 +28,10 @@ if profile:
 
 def wait_event(agent, event, create=False, update=False, delete=False):
     resource_key = 'ResourceProperties'
+    try:
+        no_echo = event[resource_key]['NoEcho'].lower()
+    except:
+        no_echo = 'false'
     if update:
         resource_key = 'OldResourceProperties'
         try:
@@ -98,18 +103,21 @@ def wait_event(agent, event, create=False, update=False, delete=False):
         waiter = getattr(agent, 'get_waiter')(agent_method)
         agent_attr = None
     except:
+        print_exc()
         waiter = None
         try:
             agent_attr = getattr(agent, agent_method)
         except:
+            print_exc()
             agent_attr = None
 
-    print('agent_method={}, agent_kwargs={}, agent_attr={} agent_resource_id={} agent_exceptions={}'.format(
-        agent_method, agent_kwargs, agent_attr, agent_resource_id, agent_exceptions
-    ))
+    if no_echo == 'false':
+        print('agent_method={}, agent_kwargs={}, agent_attr={} agent_resource_id={} agent_exceptions={}'.format(
+            agent_method, agent_kwargs, agent_attr, agent_resource_id, agent_exceptions
+        ))
 
     if waiter:
-        if agent_pass_exceptions:
+        if agent_exceptions:
             try:
                 waiter.wait(**agent_kwargs)
             except tuple(agent_exceptions) as e:
@@ -117,12 +125,13 @@ def wait_event(agent, event, create=False, update=False, delete=False):
                 print_exc()
         else:
             waiter.wait(**agent_kwargs)
+            return
 
     if agent_attr and agent_query_expr and agent_query_value is not None:
         response = {}
         match = None
         while True:
-            if agent_pass_exceptions:
+            if agent_exceptions:
                 try:
                     response = agent_attr(**agent_kwargs)
                 except tuple(agent_exceptions) as e:
@@ -132,18 +141,20 @@ def wait_event(agent, event, create=False, update=False, delete=False):
                 response = agent_attr(**agent_kwargs)
             
             match = jsonpath(response, agent_query_expr)
-            print('agent_query_expr={} agent_query_value={} match={} create={} update={} delete={}'.format(
-                agent_query_expr,
-                agent_query_value,
-                match,
-                create,
-                update,
-                delete
-            ))
+            if no_echo == 'false':
+                print('agent_query_expr={} agent_query_value={} match={} create={} update={} delete={}'.format(
+                    agent_query_expr,
+                    agent_query_value,
+                    match,
+                    create,
+                    update,
+                    delete
+                ))
             if match is not None and response and (match == agent_query_value or not match): break
             sleep(default_wait)
 
 
+@retry(wait_exponential_multiplier=1000, wait_exponential_max=10000, stop_max_delay=30000)
 def handle_client_event(agent, event, create=False, update=False, delete=False):
     resource_key = 'ResourceProperties'
     args_key = 'AgentCreateArgs'
@@ -158,6 +169,10 @@ def handle_client_event(agent, event, create=False, update=False, delete=False):
         args_key = 'AgentDeleteArgs'
         method_key = 'AgentDeleteMethod'
         exceptions_key = 'AgentDeleteExceptions'
+    try:
+        no_echo = event[resource_key]['NoEcho'].lower()
+    except:
+        no_echo = 'false'
     try:
         agent_kwargs = json.loads(event[resource_key][args_key])
     except:
@@ -186,6 +201,7 @@ def handle_client_event(agent, event, create=False, update=False, delete=False):
         for ex in event[resource_key][exceptions_key]:
             agent_exceptions.append(eval(ex))
     except:
+        print_exc()
         agent_exceptions = None
     try:
         agent_method = event[resource_key][method_key]
@@ -198,9 +214,10 @@ def handle_client_event(agent, event, create=False, update=False, delete=False):
         agent_attr = None
     if agent_attr:
         response = {}
-        print('agent_method={}, agent_kwargs={}, agent_attr={} agent_resource_id={} agent_exceptions={}'.format(
-            agent_method, agent_kwargs, agent_attr, agent_resource_id, agent_exceptions
-        ))
+        if no_echo == 'false':
+            print('agent_method={}, agent_kwargs={}, agent_attr={} agent_resource_id={} agent_exceptions={}'.format(
+                agent_method, agent_kwargs, agent_attr, agent_resource_id, agent_exceptions
+            ))
         if agent_exceptions:
             try:
                 response = agent_attr(**agent_kwargs)
@@ -209,12 +226,13 @@ def handle_client_event(agent, event, create=False, update=False, delete=False):
                 print_exc()
         else:
             response = agent_attr(**agent_kwargs)
-        print('response={} create={} update={} delete={}'.format(
-            response,
-            create,
-            update,
-            delete
-        ))
+        if no_echo == 'false':
+            print('response={} create={} update={} delete={}'.format(
+                response,
+                create,
+                update,
+                delete
+            ))
         wait_event(agent, event, create=create, update=update, delete=delete)
         try:
             responseData = response
@@ -226,7 +244,7 @@ def handle_client_event(agent, event, create=False, update=False, delete=False):
             try:
                 PhysicalResourceId = jsonpath(response, agent_query_expr)
                 assert PhysicalResourceId
-                PhysicalResourceId = ''.join(PhysicalResourceId)
+                PhysicalResourceId = ','.join(PhysicalResourceId)
             except:
                 try:
                     PhysicalResourceId = event[resource_key][args_key][agent_resource_id]
@@ -234,10 +252,11 @@ def handle_client_event(agent, event, create=False, update=False, delete=False):
                 except:
                     PhysicalResourceId = str(uuid4())
         if create:
-            print('PhysicalResourceId={} responseData={}'.format(
-                PhysicalResourceId,
-                responseData
-            ))
+            if no_echo == 'false':
+                print('PhysicalResourceId={} responseData={}'.format(
+                    PhysicalResourceId,
+                    responseData
+                ))
             return (PhysicalResourceId, responseData)
         else:
             print('PhysicalResourceId={} responseData={}'.format(
@@ -248,10 +267,15 @@ def handle_client_event(agent, event, create=False, update=False, delete=False):
     return {}
 
 
+@retry(wait_exponential_multiplier=1000, wait_exponential_max=10000, stop_max_delay=30000)
 def handle_resource_event(agent, event):
     PhysicalResourceId = str(uuid4())
     responseData = {}
     resource_key = 'ResourceProperties'
+    try:
+        no_echo = event[resource_key]['NoEcho'].lower()
+    except:
+        no_echo = 'false'
     try:
         agent_property = event[resource_key]['AgentCreateMethod']
     except:
@@ -277,15 +301,16 @@ def handle_resource_event(agent, event):
         print_exc()
         agent_attr = None
 
-    print('agent_kwargs={}, agent_query_expr={}, agent_attr={} agent_resource_id={} agent_property={}'.format(
-        agent_kwargs, agent_query_expr, agent_attr, agent_resource_id, agent_property
-    ))
+    if no_echo == 'false':
+        print('agent_kwargs={}, agent_query_expr={}, agent_attr={} agent_resource_id={} agent_property={}'.format(
+            agent_kwargs, agent_query_expr, agent_attr, agent_resource_id, agent_property
+        ))
     assert agent_attr and agent_resource_id and agent_query_expr and agent_property
     resource = agent_attr(agent_kwargs['ResourceId'])
     if agent_property in dir(resource):
         response = eval('resource.{}'.format(agent_property))
     match = jsonpath(response, agent_query_expr)
-    print('response={} match={}'.format(response, match))
+    if no_echo == 'false': print('response={} match={}'.format(response, match))
     try:
         assert match
         responseData[agent_resource_id] = ','.join(match)
@@ -296,7 +321,17 @@ def handle_resource_event(agent, event):
 
 def lambda_handler(event=None, context=None):
     try:
-        print('event: {}, context: {}'.format(json.dumps(event), context))
+        no_echo = event['ResourceProperties']['NoEcho'].lower()
+    except:
+        no_echo = 'false'
+    if no_echo == 'true':
+        no_echo = True
+    elif no_echo == 'false':
+        no_echo = False
+    else:
+        no_echo = False
+    try:
+        if not no_echo: print('event: {}, context: {}'.format(json.dumps(event), context))
     except:
         pass
 
@@ -313,18 +348,18 @@ def lambda_handler(event=None, context=None):
             RoleArn=RoleArn,
             RoleSessionName=str(uuid4())
         )
-        print('response={}'.format(response))
+        if not no_echo: print('response={}'.format(response))
         kwargs['aws_access_key_id'] = response['Credentials']['AccessKeyId']
         kwargs['aws_secret_access_key'] = response['Credentials']['SecretAccessKey']
         kwargs['aws_session_token'] = response['Credentials']['SessionToken']
-        print('get_caller_identity={}'.format(client.get_caller_identity()))
+        if not no_echo: print('get_caller_identity={}'.format(client.get_caller_identity()))
     except:
         if not profile:
             kwargs['aws_access_key_id'] = os.getenv('AWS_ACCESS_KEY_ID')
             kwargs['aws_secret_access_key'] = os.getenv('AWS_SECRET_ACCESS_KEY')
             kwargs['aws_session_token'] = os.getenv('AWS_SESSION_TOKEN')
 
-    print('kwargs={}'.format(kwargs))
+    if not no_echo: print('kwargs={}'.format(kwargs))
 
     responseData = {}
 
@@ -352,15 +387,16 @@ def lambda_handler(event=None, context=None):
                     context,
                     cfnresponse.SUCCESS,
                     responseData=responseData,
-                    physicalResourceId=physicalResourceId
+                    physicalResourceId=physicalResourceId,
+                    noEcho=no_echo
                 )
             except:
                 print_exc()
-                cfnresponse.send(event, context, cfnresponse.FAILED)
+                cfnresponse.send(event, context, cfnresponse.FAILED, noEcho=no_echo)
             return
     except:
         print_exc()
-        cfnresponse.send(event, context,cfnresponse.FAILED)
+        cfnresponse.send(event, context,cfnresponse.FAILED, noEcho=no_echo)
         return
 
 
@@ -375,12 +411,13 @@ def lambda_handler(event=None, context=None):
                     context,
                     cfnresponse.SUCCESS,
                     responseData=responseData,
-                    physicalResourceId=event['PhysicalResourceId']
+                    physicalResourceId=event['PhysicalResourceId'],
+                    noEcho=no_echo
                 )
                 return
         except:
             print_exc()
-            cfnresponse.send(event, context, cfnresponse.FAILED)
+            cfnresponse.send(event, context, cfnresponse.FAILED, noEcho=no_echo)
             return
 
 
@@ -395,13 +432,14 @@ def lambda_handler(event=None, context=None):
                     context,
                     cfnresponse.SUCCESS,
                     responseData=responseData,
-                    physicalResourceId=event['PhysicalResourceId']
+                    physicalResourceId=event['PhysicalResourceId'],
+                    noEcho=no_echo
                 )
                 return
             event['ResourceProperties'].pop('AgentResourceId', None)
         except:
             print_exc()
-            cfnresponse.send(event, context, cfnresponse.FAILED)
+            cfnresponse.send(event, context, cfnresponse.FAILED, noEcho=no_echo)
             return
 
 
@@ -414,12 +452,13 @@ def lambda_handler(event=None, context=None):
             context,
             cfnresponse.SUCCESS,
             responseData=responseData,
-            physicalResourceId=PhysicalResourceId
+            physicalResourceId=PhysicalResourceId,
+            noEcho=no_echo
         )
         return
     except:
         print_exc()
-        cfnresponse.send(event, context, cfnresponse.FAILED)
+        cfnresponse.send(event, context, cfnresponse.FAILED, noEcho=no_echo)
         return
 
 
