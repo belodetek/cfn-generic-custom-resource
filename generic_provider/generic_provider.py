@@ -167,7 +167,6 @@ def handle_client_event(agent, event, create=False, update=False, delete=False):
     method_key = 'AgentCreateMethod'
     exceptions_key = 'AgentCreateExceptions'
     if update:
-        resource_key = 'OldResourceProperties'
         args_key = 'AgentUpdateArgs'
         method_key = 'AgentUpdateMethod'
         exceptions_key = 'AgentUpdateExceptions'
