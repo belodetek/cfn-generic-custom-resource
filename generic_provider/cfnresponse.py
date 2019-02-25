@@ -17,15 +17,16 @@ def send(event, context, responseStatus, responseData=None, physicalResourceId=N
     except:
         log_stream_name = '__mock__'
 
-    response_size = 0
-    try:
-        response_size = len(json.dumps(responseData))
-        assert response_size <= 4096
-    except:
-        if not noEcho: print('Response object is too long, length={}'.format(
-            response_size
-        ))
-        responseData = None
+    if responseData:
+        response_size = 0
+        try:
+            response_size = len(json.dumps(responseData))
+            assert response_size <= 4096
+        except:
+            if not noEcho: print('Response object is too long, length={}'.format(
+                response_size
+            ))
+            responseData = None
 
     responseUrl = event['ResponseURL']
     responseBody = {}
@@ -42,17 +43,20 @@ def send(event, context, responseStatus, responseData=None, physicalResourceId=N
 
     if not noEcho: print("Response body:\n" + json_responseBody)
 
-    headers = {
-        'content-type' : '',
-        'content-length' : str(len(json_responseBody))
-    }
+    if not log_stream_name == '__mock__':
+        headers = {
+            'content-type' : '',
+            'content-length' : str(len(json_responseBody))
+        }
 
-    try:
-        response = requests.put(
-            responseUrl,
-            data=json_responseBody,
-            headers=headers
-        )
-        print("Status code: " + response.reason)
-    except Exception as e:
-        print("send(..) failed executing requests.put(..): " + str(e))
+        try:
+            response = requests.put(
+                responseUrl,
+                data=json_responseBody,
+                headers=headers
+            )
+            print("Status code: " + response.reason)
+        except Exception as e:
+            print("send(..) failed executing requests.put(..): " + str(e))
+    else:
+        print('Done!')
