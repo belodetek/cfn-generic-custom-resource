@@ -96,6 +96,10 @@ def wait_event(agent, event, create=False, update=False, delete=False):
     except:
         agent_method = None
     try:
+        agent_wait_delay = int(event[resource_key]['AgentWaitDelay'])
+    except:
+        agent_wait_delay = 0
+    try:
         agent_query_expr = event[resource_key]['AgentWaitQueryExpr']
     except:
         agent_query_expr = None
@@ -113,8 +117,8 @@ def wait_event(agent, event, create=False, update=False, delete=False):
             agent_attr = None
 
     if no_echo == 'false':
-        print('agent_method={}, agent_kwargs={}, agent_attr={} agent_resource_id={} agent_exceptions={}'.format(
-            agent_method, agent_kwargs, agent_attr, agent_resource_id, agent_exceptions
+        print('agent_method={}, agent_kwargs={}, agent_attr={} agent_resource_id={} agent_exceptions={} agent_wait_delay={}'.format(
+            agent_method, agent_kwargs, agent_attr, agent_resource_id, agent_exceptions, agent_wait_delay
         ))
 
     if waiter:
@@ -131,6 +135,7 @@ def wait_event(agent, event, create=False, update=False, delete=False):
     if agent_attr and agent_query_expr and agent_query_value is not None:
         response = {}
         match = None
+        sleep(agent_wait_delay)
         while True:
             if agent_exceptions:
                 try:

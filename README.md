@@ -333,6 +333,76 @@ aws s3api put-bucket-policy\
     popd
 
 
+### Relational Database Service
+> [RDS](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/rds.html) API reference
+
+#### modify-db-cluster
+> mock CloudFormation request to [modify](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/rds.html#RDS.Client.modify_db_cluster) DB cluster
+
+    pushd generic_provider
+    echo "{
+      \"RequestType\": \"Create\",
+      \"ResponseURL\": \"https://cloudformation-custom-resource-response-${AWS_REGION}.s3.amazonaws.com/\",
+      \"StackId\": \"arn:aws:cloudformation:${AWS_REGION}:$(aws sts get-caller-identity | jq -r '.Account'):stack/MockStack/$(uuid)\",
+      \"RequestId\": \"$(uuid)\",
+      \"ResourceType\": \"Custom::MockResource\",
+      \"LogicalResourceId\": \"MockResource\",
+      \"PhysicalResourceId\": \"$(uuid)\",
+      \"ResourceProperties\": {
+        \"AgentService\": \"rds\",
+        \"AgentType\": \"client\",
+        \"AgentCreateMethod\": \"modify_db_cluster\",
+        \"AgentCreateArgs\": {
+          \"DBClusterIdentifier\": \"foo-bar\",
+          \"CloudwatchLogsExportConfiguration\": {
+            \"EnableLogTypes\": [
+              \"error\",
+              \"slowquery\"
+            ],
+            \"DisableLogTypes\": []
+          }
+        },
+        \"AgentDeleteMethod\": \"modify_db_cluster\",
+        \"AgentDeleteArgs\": {
+          \"DBClusterIdentifier\": \"foo-bar\",
+          \"CloudwatchLogsExportConfiguration\": {
+            \"DisableLogTypes\": [
+              \"error\",
+              \"slowquery\"
+            ],
+            \"EnableLogTypes\": []
+          }
+        },
+        \"AgentWaitMethod\": \"describe_db_instances\",
+        \"AgentWaitDelay\": \"60\",
+        \"AgentWaitArgs\": {
+          \"Filters\": [
+            {
+              \"Name\": \"db-cluster-id\",
+              \"Values\": [
+                \"foo-bar\"
+              ]
+            },
+            {
+              \"Name\": \"db-instance-id\",
+              \"Values\": [
+                \"foo-bar\"
+              ]
+            }
+          ]
+        },
+        \"AgentWaitQueryExpr\": \"$.DBInstances[*].DBInstanceStatus\",
+        \"AgentWaitCreateQueryValues\": [
+            \"available\"
+        ],
+        \"AgentWaitDeleteQueryValues\": [
+            \"available\"
+        ]
+      }
+    }" | jq -c | ./generic_provider.py
+    popd
+
+
 ### Database Migration Service
 > [DMS](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/dms.html) API reference
 
@@ -347,7 +417,7 @@ aws s3api put-bucket-policy\
       \"RequestId\": \"$(uuid)\",
       \"ResourceType\": \"Custom::MockResource\",
       \"LogicalResourceId\": \"MockResource\",
-      \"PhysicalResourceId\": \"MockResource\",
+      \"PhysicalResourceId\": \"$(uuid)\",
       \"ResourceProperties\": {
         \"AgentService\": \"dms\",
         \"AgentType\": \"client\",
