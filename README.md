@@ -1,6 +1,6 @@
 # cfn-custom-resource-provider
 
-> **TL;DR** One *Custom Resource provider* to Rule Them All 🤓
+> **TL;DR** One *Custom Resource provider* to Rule Them All, now with [examples](#mock-client-requests) 🤓
 
 
 ## CloudFormation
