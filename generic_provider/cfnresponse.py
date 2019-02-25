@@ -16,6 +16,14 @@ def send(event, context, responseStatus, responseData=None, physicalResourceId=N
         log_stream_name = context.log_stream_name
     except:
         log_stream_name = '__mock__'
+
+    try:
+        response_size = len(json.dumps(responseData))
+        assert response_size <= 4096
+    except:
+        if not noEcho: print('Response object is too long.')
+        responseData = None
+
     responseUrl = event['ResponseURL']
     responseBody = {}
     responseBody['Status'] = responseStatus
@@ -24,8 +32,8 @@ def send(event, context, responseStatus, responseData=None, physicalResourceId=N
     responseBody['StackId'] = event['StackId']
     responseBody['RequestId'] = event['RequestId']
     responseBody['LogicalResourceId'] = event['LogicalResourceId']
-    responseBody['NoEcho'] = noEcho
     responseBody['Data'] = responseData
+    responseBody['NoEcho'] = noEcho
 
     json_responseBody = json.dumps(responseBody, sort_keys=True, default=str)
 
