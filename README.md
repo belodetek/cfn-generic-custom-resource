@@ -337,7 +337,7 @@ aws s3api put-bucket-policy\
 > [RDS](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/rds.html) API reference
 
 #### modify-db-cluster
-> mock CloudFormation request to [modify](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/rds.html#RDS.Client.modify_db_cluster) DB cluster
+> mock CloudFormation request to [enable](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/rds.html#RDS.Client.modify_db_cluster) RDS CloudWatch metrics
 
     pushd generic_provider
     echo "{
@@ -387,6 +387,65 @@ aws s3api put-bucket-policy\
               \"Name\": \"db-instance-id\",
               \"Values\": [
                 \"foo-bar\"
+              ]
+            }
+          ]
+        },
+        \"AgentWaitQueryExpr\": \"$.DBInstances[*].DBInstanceStatus\",
+        \"AgentWaitCreateQueryValues\": [
+            \"available\"
+        ],
+        \"AgentWaitDeleteQueryValues\": [
+            \"available\"
+        ]
+      }
+    }" | jq -c | ./generic_provider.py
+    popd
+
+
+#### modify-db-instance
+> mock CloudFormation request to [enable](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/rds.html#RDS.Client.modify_db_cluster) RDS Performance Insights
+
+    pushd generic_provider
+    echo "{
+      \"RequestType\": \"Create\",
+      \"ResponseURL\": \"https://cloudformation-custom-resource-response-${AWS_REGION}.s3.amazonaws.com/\",
+      \"StackId\": \"arn:aws:cloudformation:${AWS_REGION}:$(aws sts get-caller-identity | jq -r '.Account'):stack/MockStack/$(uuid)\",
+      \"RequestId\": \"$(uuid)\",
+      \"ResourceType\": \"Custom::MockResource\",
+      \"LogicalResourceId\": \"MockResource\",
+      \"PhysicalResourceId\": \"$(uuid)\",
+      \"ResourceProperties\": {
+        \"AgentService\": \"rds\",
+        \"AgentType\": \"client\",
+        \"AgentCreateMethod\": \"modify_db_instance\",
+        \"AgentCreateArgs\": {
+          \"DBInstanceIdentifier\": \"abcdefghij1234\",
+          \"EnablePerformanceInsights\": true,
+          \"PerformanceInsightsKMSKeyId\": \"arn:aws:kms:${AWS_REGION}:1234567890:key/$(uuid)\",
+          \"PerformanceInsightsRetentionPeriod\": 7,
+          \"ApplyImmediately\": true
+        },
+        \"AgentDeleteMethod\": \"modify_db_instance\",
+        \"AgentDeleteArgs\": {
+          \"DBInstanceIdentifier\": \"1234abcdefghij\",
+          \"EnablePerformanceInsights\": false,
+          \"ApplyImmediately\": true
+        },
+        \"AgentWaitMethod\": \"describe_db_instances\",
+        \"AgentWaitDelay\": \"60\",
+        \"AgentWaitArgs\": {
+          \"Filters\": [
+            {
+              \"Name\": \"db-cluster-id\",
+              \"Values\": [
+                \"1234abcdefghij\"
+              ]
+            },
+            {
+              \"Name\": \"db-instance-id\",
+              \"Values\": [
+                \"abcdefghij1234\"
               ]
             }
           ]
