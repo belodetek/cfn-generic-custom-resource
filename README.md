@@ -476,7 +476,6 @@ aws s3api put-bucket-policy\
       \"RequestId\": \"$(uuid)\",
       \"ResourceType\": \"Custom::MockResource\",
       \"LogicalResourceId\": \"MockResource\",
-      \"PhysicalResourceId\": \"$(uuid)\",
       \"ResourceProperties\": {
         \"AgentService\": \"dms\",
         \"AgentType\": \"client\",
@@ -508,7 +507,6 @@ aws s3api put-bucket-policy\
       \"RequestId\": \"$(uuid)\",
       \"ResourceType\": \"Custom::MockResource\",
       \"LogicalResourceId\": \"MockResource\",
-      \"PhysicalResourceId\": \"MockResource\",
       \"ResourceProperties\": {
         \"AgentService\": \"dms\",
         \"AgentType\": \"client\",
@@ -525,7 +523,12 @@ aws s3api put-bucket-policy\
         },
         \"AgentCreateMethod\": \"stop_replication_task\",
         \"AgentCreateExceptions\": [
-          \"agent.exceptions.InvalidResourceStateFault\"
+          \"agent.exceptions.InvalidResourceStateFault\",
+          \"agent.exceptions.ClientError\"
+        ],
+        \"AgentWaitCreateExceptions\": [
+          \"botocore.exceptions.WaiterError\"
+
         ],
         \"AgentCreateArgs\": {
           \"ReplicationTaskArn\": \"arn:aws:dms:${AWS_REGION}:1234567890:task:ABCDEFGHIJKLMNOPQRSTUVWXYZ\"

@@ -20,8 +20,10 @@ def send(event, context, responseStatus, responseData=None, physicalResourceId=N
     if responseData:
         response_size = 0
         try:
-            response_size = len(json.dumps(responseData))
-            assert response_size <= 4096
+            response_size = len(
+                json.dumps(responseData, sort_keys=True, default=str)
+            )
+            assert response_size <= 4096, 'response > 4k'
         except Exception as e:
             print('response: length={} error={}'.format(
                 response_size,
