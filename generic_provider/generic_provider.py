@@ -254,11 +254,12 @@ def handle_client_event(agent, event, create=False, update=False, delete=False):
                 if verbose: print_exc()
                 responseData = {}
         try:
-            PhysicalResourceId = response[agent_resource_id]
+            PhysicalResourceId = responseData[agent_resource_id]
+            assert PhysicalResourceId, 'PhysicalResourceId from responseData[agent_resource_id]'
         except:
             if verbose: print_exc()
             try:
-                PhysicalResourceId = jsonpath(response, agent_query_expr)
+                PhysicalResourceId = jsonpath(responseData, agent_query_expr)
                 assert PhysicalResourceId, 'PhysicalResourceId from jsonpath(response, agent_query_expr)'
                 PhysicalResourceId = ','.join(PhysicalResourceId)
             except:
