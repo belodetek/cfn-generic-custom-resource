@@ -34,7 +34,6 @@ def wait_event(agent, event, create=False, update=False, delete=False):
     except:
         no_echo = 'false'
     if update:
-        resource_key = 'OldResourceProperties'
         try:
             agent_query_value = event[resource_key]['AgentWaitUpdateQueryValues']
         except:
@@ -186,6 +185,10 @@ def handle_client_event(agent, event, create=False, update=False, delete=False):
         except:
             agent_kwargs = {}
     try:
+        agent_response_node = event[resource_key]['AgentResponseNode']
+    except:
+        agent_response_node = None
+    try:
         agent_resource_id = event[resource_key]['AgentResourceId']
     except:
         agent_resource_id = None
@@ -220,8 +223,8 @@ def handle_client_event(agent, event, create=False, update=False, delete=False):
     if agent_attr:
         response = {}
         if no_echo == 'false':
-            print('agent_method={}, agent_kwargs={}, agent_attr={} agent_resource_id={} agent_exceptions={}'.format(
-                agent_method, agent_kwargs, agent_attr, agent_resource_id, agent_exceptions
+            print('agent_method={}, agent_kwargs={}, agent_attr={} agent_resource_id={} agent_exceptions={} agent_response_node={}'.format(
+                agent_method, agent_kwargs, agent_attr, agent_resource_id, agent_exceptions, agent_response_node
             ))
         if agent_exceptions:
             try:
@@ -240,22 +243,31 @@ def handle_client_event(agent, event, create=False, update=False, delete=False):
             ))
         wait_event(agent, event, create=create, update=update, delete=delete)
         try:
-            responseData = response
+            responseData = response[agent_response_node]
+            assert responseData, 'responseData from response[agent_response_node]'
         except:
-            responseData = {}
+            if verbose: print_exc()
+            try:
+                responseData = response
+                assert responseData
+            except:
+                if verbose: print_exc()
+                responseData = {}
         try:
             PhysicalResourceId = response[agent_resource_id]
         except:
+            if verbose: print_exc()
             try:
                 PhysicalResourceId = jsonpath(response, agent_query_expr)
-                assert PhysicalResourceId
+                assert PhysicalResourceId, 'PhysicalResourceId from jsonpath(response, agent_query_expr)'
                 PhysicalResourceId = ','.join(PhysicalResourceId)
             except:
                 if verbose: print_exc()
                 try:
                     PhysicalResourceId = event[resource_key][args_key][agent_resource_id]
-                    assert PhysicalResourceId
+                    assert PhysicalResourceId, 'PhysicalResourceId from event[resource_key][args_key][agent_resource_id]'
                 except:
+                    if verbose: print_exc()
                     PhysicalResourceId = str(uuid4())
         if create:
             if no_echo == 'false':

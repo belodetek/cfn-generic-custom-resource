@@ -106,6 +106,7 @@ Resources:
       AgentUpdateMethod: update_user_pool_client
       AgentDeleteMethod: delete_user_pool_client
       AgentResourceId: ClientId
+      AgentWaitQueryExpr: '$.UserPoolClient.ClientId'
       AgentCreateArgs: !Sub |
         {
           "UserPoolId": "${UserPool}",
