@@ -34,7 +34,6 @@ def wait_event(agent, event, create=False, update=False, delete=False):
     except:
         no_echo = 'false'
     if update:
-        resource_key = 'OldResourceProperties'
         try:
             agent_query_value = event[resource_key]['AgentWaitUpdateQueryValues']
         except:
@@ -240,14 +239,18 @@ def handle_client_event(agent, event, create=False, update=False, delete=False):
             ))
         wait_event(agent, event, create=create, update=update, delete=delete)
         try:
-            responseData = response
-        except:
-            responseData = {}
-        try:
-            PhysicalResourceId = response[agent_resource_id]
+            agent_response_node = event[resource_key]['AgentResponseNode']
+            responseData = response[agent_response_node]
         except:
             try:
-                PhysicalResourceId = jsonpath(response, agent_query_expr)
+                responseData = response
+            except:
+                responseData = {}
+        try:
+            PhysicalResourceId = responseData[agent_resource_id]
+        except:
+            try:
+                PhysicalResourceId = jsonpath(responseData, agent_query_expr)
                 assert PhysicalResourceId
                 PhysicalResourceId = ','.join(PhysicalResourceId)
             except:
