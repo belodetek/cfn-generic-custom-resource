@@ -22,9 +22,10 @@ def send(event, context, responseStatus, responseData=None, physicalResourceId=N
         try:
             response_size = len(json.dumps(responseData))
             assert response_size <= 4096
-        except:
-            if not noEcho: print('Response object is too long, length={}'.format(
-                response_size
+        except Exception as e:
+            print('response: length={} error={}'.format(
+                response_size,
+                repr(e)
             ))
             responseData = None
 
