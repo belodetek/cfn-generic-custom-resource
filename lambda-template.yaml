@@ -45,6 +45,7 @@ Resources:
           - Effect: Allow
             Action:
             - 'cognito-idp:*UserPool*'
+            - 'cognito-idp:*ResourceServer'
             - 'cognito-idp:*IdentityProvider'
             Resource: '*'
 

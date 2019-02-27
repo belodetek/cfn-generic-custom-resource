@@ -105,8 +105,8 @@ Resources:
       AgentCreateMethod: create_user_pool_client
       AgentUpdateMethod: update_user_pool_client
       AgentDeleteMethod: delete_user_pool_client
+      AgentResponseNode: UserPoolClient
       AgentResourceId: ClientId
-      AgentWaitQueryExpr: '$.UserPoolClient.ClientId'
       AgentCreateArgs: !Sub |
         {
           "UserPoolId": "${UserPool}",
@@ -156,6 +156,36 @@ Resources:
       AgentDeleteArgs:
         UserPoolId: !Sub '${UserPool}'
 
+  UserPoolResourceServer:
+    Type: 'Custom::CognitoResourceServer'
+    Properties:
+      ServiceToken: !Sub '${CustomResourceLambdaArn}'
+      AgentService: cognito-idp
+      AgentType: client
+      # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/cognito-idp.html#CognitoIdentityProvider.Client.create_resource_server
+      AgentCreateMethod: create_resource_server
+      AgentUpdateMethod: update_resource_server
+      AgentDeleteMethod: delete_resource_server
+      AgentResponseNode: ResourceServer
+      AgentResourceId: Identifier
+      AgentCreateArgs:
+        UserPoolId: !Ref UserPool
+        Name: !Sub '${NameTag}-resource'
+        Identifier: !Sub '${NameTag}-resource'
+        Scopes:
+          - ScopeName: all
+            ScopeDescription: All Access
+      AgentUpdateArgs:
+        UserPoolId: !Ref UserPool
+        Name: !Sub '${NameTag}-resource'
+        Identifier: !Sub '${NameTag}-resource'
+        Scopes:
+          - ScopeName: all
+            ScopeDescription: All Access
+      AgentDeleteArgs:
+        UserPoolId: !Ref UserPool
+        Identifier: !Sub '${NameTag}-resource'
+
 
 Outputs:
   StackName:
@@ -186,3 +216,7 @@ Outputs:
     Value: !Sub '${NameTag}.auth.${AWS::Region}.amazoncognito.com'
     Export:
       Name: !Sub 'UserPoolDomain-${AWS::StackName}'
+  UserPoolResourceServerId:
+    Value: !Ref UserPoolResourceServer
+    Export:
+      Name: !Sub 'UserPoolResourceServerId-${AWS::StackName}'
