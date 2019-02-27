@@ -11,7 +11,7 @@ import json
 SUCCESS = "SUCCESS"
 FAILED = "FAILED"
 
-def send(event, context, responseStatus, responseData=None, physicalResourceId=None, noEcho=False):
+def send(event, context, responseStatus, responseData=None, physicalResourceId=None, noEcho=False, reason=None):
     try:
         log_stream_name = context.log_stream_name
     except:
@@ -34,7 +34,7 @@ def send(event, context, responseStatus, responseData=None, physicalResourceId=N
     responseUrl = event['ResponseURL']
     responseBody = {}
     responseBody['Status'] = responseStatus
-    responseBody['Reason'] = 'See the details in CloudWatch Log Stream: ' + log_stream_name
+    responseBody['Reason'] = reason or 'See the details in CloudWatch Log Stream: ' + log_stream_name
     responseBody['PhysicalResourceId'] = physicalResourceId or log_stream_name
     responseBody['StackId'] = event['StackId']
     responseBody['RequestId'] = event['RequestId']
