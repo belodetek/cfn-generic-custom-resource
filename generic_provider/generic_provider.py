@@ -394,6 +394,7 @@ def lambda_handler(event=None, context=None):
         ResourceType = event['ResourceType']
         RequestId = event['RequestId']
         LogicalResourceId = event['LogicalResourceId']
+        CreateFailedResourceId = '{}-CREATE_FAILED'.format(LogicalResourceId)
         if agent_type == 'client':
             agent = session.client(agent_service, **kwargs)
         if agent_type == 'resource':
@@ -409,13 +410,13 @@ def lambda_handler(event=None, context=None):
                     physicalResourceId=physicalResourceId,
                     noEcho=no_echo
                 )
-            except:
+            except Exception as e:
                 if verbose: print_exc()
-                cfnresponse.send(event, context, cfnresponse.FAILED, noEcho=no_echo)
+                cfnresponse.send(event, context, cfnresponse.FAILED, noEcho=no_echo, reason=str(e))
             return
-    except:
+    except Exception as e:
         if verbose: print_exc()
-        cfnresponse.send(event, context,cfnresponse.FAILED, noEcho=no_echo)
+        cfnresponse.send(event, context,cfnresponse.FAILED, noEcho=no_echo, reason=str(e))
         return
 
 
@@ -434,9 +435,9 @@ def lambda_handler(event=None, context=None):
                     noEcho=no_echo
                 )
                 return
-        except:
+        except Exception as e:
             if verbose: print_exc()
-            cfnresponse.send(event, context, cfnresponse.FAILED, noEcho=no_echo)
+            cfnresponse.send(event, context, cfnresponse.FAILED, noEcho=no_echo, reason=str(e))
             return
 
 
@@ -444,7 +445,10 @@ def lambda_handler(event=None, context=None):
         if RequestType == 'Delete' or continues to (re)reate resource.'''
     if RequestType in ['Update', 'Delete']:
         try:
-            responseData = handle_client_event(agent, event, delete=True)
+            if event['PhysicalResourceId'] != CreateFailedResourceId:
+                responseData = handle_client_event(agent, event, delete=True)
+            else:
+                responseData = {}
             if RequestType == 'Delete':
                 cfnresponse.send(
                     event,
@@ -456,9 +460,9 @@ def lambda_handler(event=None, context=None):
                 )
                 return
             event['ResourceProperties'].pop('AgentResourceId', None)
-        except:
+        except Exception as e:
             if verbose: print_exc()
-            cfnresponse.send(event, context, cfnresponse.FAILED, noEcho=no_echo)
+            cfnresponse.send(event, context, cfnresponse.FAILED, noEcho=no_echo, reason=str(e))
             return
 
 
@@ -475,9 +479,9 @@ def lambda_handler(event=None, context=None):
             noEcho=no_echo
         )
         return
-    except:
+    except Exception as e:
         if verbose: print_exc()
-        cfnresponse.send(event, context, cfnresponse.FAILED, noEcho=no_echo)
+        cfnresponse.send(event, context, cfnresponse.FAILED, noEcho=no_echo, physicalResourceId=CreateFailedResourceId, reason=str(e))
         return
 
 
