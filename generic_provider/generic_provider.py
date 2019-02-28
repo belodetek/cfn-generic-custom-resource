@@ -350,7 +350,10 @@ def lambda_handler(event=None, context=None):
     else:
         no_echo = False
     try:
-        if not no_echo: print('event: {}, context: {}'.format(json.dumps(event), context))
+        if not no_echo: print('event: {}, context: {}'.format(
+            json.dumps(event),
+            context
+        ))
     except:
         pass
 
@@ -371,7 +374,9 @@ def lambda_handler(event=None, context=None):
         kwargs['aws_access_key_id'] = response['Credentials']['AccessKeyId']
         kwargs['aws_secret_access_key'] = response['Credentials']['SecretAccessKey']
         kwargs['aws_session_token'] = response['Credentials']['SessionToken']
-        if not no_echo: print('get_caller_identity={}'.format(client.get_caller_identity()))
+        if not no_echo: print('get_caller_identity={}'.format(
+            client.get_caller_identity()
+        ))
     except:
         if not profile:
             kwargs['aws_access_key_id'] = os.getenv('AWS_ACCESS_KEY_ID')
@@ -400,7 +405,10 @@ def lambda_handler(event=None, context=None):
         if agent_type == 'resource':
             try:
                 agent = session.resource(agent_service, **kwargs)
-                (physicalResourceId, responseData) = handle_resource_event(agent, event)
+                (physicalResourceId, responseData) = handle_resource_event(
+                    agent,
+                    event
+                )
                 assert physicalResourceId and responseData
                 cfnresponse.send(
                     event,
@@ -412,16 +420,29 @@ def lambda_handler(event=None, context=None):
                 )
             except Exception as e:
                 if verbose: print_exc()
-                cfnresponse.send(event, context, cfnresponse.FAILED, noEcho=no_echo, reason=str(e))
+                cfnresponse.send(
+                    event,
+                    context,
+                    cfnresponse.FAILED,
+                    noEcho=no_echo,
+                    reason=str(e)
+                )
             return
     except Exception as e:
         if verbose: print_exc()
-        cfnresponse.send(event, context,cfnresponse.FAILED, noEcho=no_echo, reason=str(e))
+        cfnresponse.send(
+            event,
+            context,
+            cfnresponse.FAILED,
+            noEcho=no_echo,
+            reason=str(e)
+        )
         return
 
 
-    ''' Update: runs only if AgentUpdateMethod is present otherwise the old resource is
-        deleted and a new one is created. No backups are taken, possible loss of data.'''
+    ''' Update: runs only if AgentUpdateMethod is present otherwise the old
+        resource is deleted and a new one is created. No backups are taken,
+        possible loss of data.'''
     if RequestType == 'Update':
         try:
             responseData = handle_client_event(agent, event, update=True)
@@ -437,12 +458,19 @@ def lambda_handler(event=None, context=None):
                 return
         except Exception as e:
             if verbose: print_exc()
-            cfnresponse.send(event, context, cfnresponse.FAILED, noEcho=no_echo, reason=str(e))
+            cfnresponse.send(
+                event,
+                context,
+                cfnresponse.FAILED,
+                noEcho=no_echo,
+                reason=str(e)
+            )
             return
 
 
-    ''' Delete: runs if AgentDeleteMethod is present. Returns immediatly after completion
-        if RequestType == 'Delete' or continues to (re)reate resource.'''
+    ''' Delete: runs if AgentDeleteMethod is present. Returns immediatly after
+        completion if RequestType == 'Delete' or continues to (re)reate the
+        resource.'''
     if RequestType in ['Update', 'Delete']:
         try:
             if event['PhysicalResourceId'] != CreateFailedResourceId:
@@ -462,14 +490,24 @@ def lambda_handler(event=None, context=None):
             event['ResourceProperties'].pop('AgentResourceId', None)
         except Exception as e:
             if verbose: print_exc()
-            cfnresponse.send(event, context, cfnresponse.FAILED, noEcho=no_echo, reason=str(e))
+            cfnresponse.send(
+                event,
+                context,
+                cfnresponse.FAILED,
+                noEcho=no_echo,
+                reason=str(e)
+            )
             return
 
 
     ''' Create: (re)creates a resource and returns PhysicalResourceId based on
         the specified AgentResourceId.'''
     try:
-        (PhysicalResourceId, responseData) = handle_client_event(agent, event, create=True)
+        (PhysicalResourceId, responseData) = handle_client_event(
+            agent,
+            event,
+            create=True
+        )
         cfnresponse.send(
             event,
             context,
@@ -481,7 +519,14 @@ def lambda_handler(event=None, context=None):
         return
     except Exception as e:
         if verbose: print_exc()
-        cfnresponse.send(event, context, cfnresponse.FAILED, noEcho=no_echo, physicalResourceId=CreateFailedResourceId, reason=str(e))
+        cfnresponse.send(
+            event,
+            context,
+            cfnresponse.FAILED,
+            noEcho=no_echo,
+            physicalResourceId=CreateFailedResourceId,
+            reason=str(e)
+        )
         return
 
 
