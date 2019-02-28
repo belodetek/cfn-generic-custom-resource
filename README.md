@@ -1,6 +1,6 @@
 # cfn-custom-resource-provider
 
-> **TL;DR** One *Custom Resource provider* to Rule Them All, now with [examples](#mock-client-requests) 🤓
+> **TL;DR** One *Custom Resource provider* to Rule Them All, inspect the [code](https://github.com/ab77/cfn-generic-custom-resource/blob/master/generic_provider/generic_provider.py) and try some [examples](#mock-client-requests) 🤓
 
 
 ## CloudFormation
