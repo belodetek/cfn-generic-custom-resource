@@ -229,7 +229,7 @@ aws s3api put-bucket-policy\
 
 
 #### create IAM role
-> ☢ ensure appropriate [VPCPeeringRole](blob/master/lambda-template.yaml#L12) exists in the VPC accepter AWS account and review IAM role permissions
+> ☢ ensure appropriate [VPCPeeringRole](lambda-template.yaml#L12) exists in the VPC accepter AWS account and review IAM role permissions
 
       VPCPeeringRole:
         Type: 'AWS::IAM::Role'
@@ -250,7 +250,7 @@ aws s3api put-bucket-policy\
 
 
 #### update IAM role
-> ☢ add VPC requester AWS accounts to [CustomResourceLambdaRole](blob/master/lambda-template.yaml#L94) under the `AmazonSTSPolicy` policy and review IAM role permissions
+> ☢ add VPC requester AWS accounts to [CustomResourceLambdaRole](lambda-template.yaml#L94) under the `AmazonSTSPolicy` policy and review IAM role permissions
 
       - PolicyName: AmazonSTSPolicy
         PolicyDocument:
