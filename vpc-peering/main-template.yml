@@ -1,0 +1,183 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >-
+  VPC peering template
+
+
+Metadata:
+  'AWS::CloudFormation::Interface':
+    ParameterGroups:
+    - Label:
+        default: 'Common parameters'
+      Parameters:
+      - NotificationTopic
+      - TimeoutInMinutes
+    - Label:
+        default: 'EC2 parameters'
+      Parameters:
+      - SecurityGroup
+      - TargetPort
+    - Label:
+        default: 'VPC parameters'
+      Parameters:
+      - IPv6
+      - SourceVpcId
+      - SourceRouteTableIds
+      - SourceRouteTables
+      - TargetRegion
+      - TargetAccountId
+      - TargetVpcId
+      - TargetRouteTables
+      - TargetRouteTableIds
+    - Label:
+        default: 'Nested templates'
+      Parameters:
+      - VPCTemplate
+      - EC2Template
+
+
+Parameters:
+  IPv6:
+    Description: 'Specify if both VPCs are IPv6 enabled.'
+    Default: 'true'
+    Type: String
+    AllowedValues:
+    - 'true'
+    - 'false'
+  SecurityGroup:
+    Description: 'Specify security group in the target VPC.'
+    Type: String
+  TargetPort:
+    Description: 'Specify TCP port to open on target security group.'
+    Type: Number
+    Default: 3306
+  SourceRouteTables:
+    Description: 'Specify number of source route tables.'
+    Type: Number
+    Default: 1
+    AllowedValues: [1, 2, 3]
+  SourceRouteTableIds:
+    Description: 'Specify source VPC route table id(s) in CSV format.'
+    Type: String
+  SourceVpcId:
+    Description: 'Specify source VPC id.'
+    Type: String
+  TargetRouteTables:
+    Description: 'Specify number of source route tables.'
+    Type: Number
+    Default: 1
+    AllowedValues: [1, 2, 3]
+  TargetRouteTableIds:
+    Description: 'Specify destination VPC route table id(s) in CSV format.'
+    Type: String
+  TargetRegion:
+    Description: 'Specify destination VPC AWS region.'
+    Type: String
+    AllowedValues:
+    - 'us-east-1'
+    - 'us-east-2'
+    - 'us-west-2'
+    - 'us-west-2'
+    - 'ca-central-1'
+  TargetAccountId:
+    Description: 'Specify destination VPC AWS account.'
+    Type: Number
+  TargetVpcId:
+    Description: 'Specify destination VPC id.'
+    Type: String
+  NotificationTopic:
+    Description: 'Specify optional SNS topic for initial CloudFormation event notifications.'
+    Type: String
+    Default: ''
+  TimeoutInMinutes:
+    Description: 'Specify optional timeout in minutes for stack creation.'
+    Type: Number
+    Default: 60
+  VPCTemplate:
+    Description: 'Nested template containing VPC resources.'
+    Default: 'true'
+    Type: String
+    AllowedValues:
+    - 'true'
+    - 'false'
+  EC2Template:
+    Description: 'Nested template containing EC2 resources.'
+    Default: 'true'
+    Type: String
+    AllowedValues:
+    - 'true'
+    - 'false'
+
+
+Conditions:
+  HasNotifySNS: !Not [ !Equals [ '', !Ref 'NotificationTopic' ]]
+  HasTargetAccount: !Not [ !Equals [ '', !Ref 'TargetAccountId' ]]
+  HasVPC: !And
+  - !Equals [ 'true', !Ref 'VPCTemplate' ]
+  - !Condition HasTargetAccount
+  HasEC2: !And
+  - !Equals [ 'true', !Ref 'EC2Template' ]
+  - !Condition HasVPC
+
+
+Resources:
+  VPCStack:
+    Type: 'AWS::CloudFormation::Stack'
+    Condition: HasVPC
+    Properties:
+      TemplateURL: 'vpc.yml'
+      Parameters:
+        NameTag: !Sub '${AWS::StackName}'
+        IPv6: !Sub '${IPv6}'
+        SourceVpcId: !Ref 'SourceVpcId'
+        SourceRouteTableIds: !Ref 'SourceRouteTableIds'
+        SourceRouteTables: !Ref 'SourceRouteTables'
+        TargetRouteTableIds: !Ref 'TargetRouteTableIds'
+        TargetRouteTables: !Ref 'TargetRouteTables'
+        TargetRegion: !Ref 'TargetRegion'
+        TargetAccountId: !Ref 'TargetAccountId'
+        TargetVpcId: !Ref 'TargetVpcId'
+      NotificationARNs:
+      - !If [ HasNotifySNS, !Ref 'NotificationTopic', !Ref 'AWS::NoValue' ]
+      TimeoutInMinutes: !Ref 'TimeoutInMinutes'
+      Tags:
+      - Key: Name
+        Value: !Sub '${AWS::StackName}'
+
+  EC2Stack:
+    Type: 'AWS::CloudFormation::Stack'
+    Condition: HasEC2
+    DependsOn: VPCStack
+    Properties:
+      TemplateURL: 'ec2.yml'
+      Parameters:
+        NameTag: !Sub '${AWS::StackName}'
+        SecurityGroup: !Ref 'SecurityGroup'
+        SourceVPCCidrBlock: !GetAtt [ VPCStack, Outputs.SourceVPCCidrBlock ]
+        SourceVPCIpv6CidrBlock: !GetAtt [ VPCStack, Outputs.SourceVPCIpv6CidrBlock ]
+        TargetPort: !Ref 'TargetPort'
+        TargetRegion: !Ref 'TargetRegion'
+        TargetAccountId: !Ref 'TargetAccountId'
+      NotificationARNs:
+      - !If [ HasNotifySNS, !Ref 'NotificationTopic', !Ref 'AWS::NoValue' ]
+      TimeoutInMinutes: !Ref 'TimeoutInMinutes'
+      Tags:
+      - Key: Name
+        Value: !Sub '${AWS::StackName}'
+
+
+Outputs:
+  StackName:
+    Value: !Ref 'AWS::StackName'
+    Export:
+      Name: !Sub 'StackName-${AWS::StackName}'
+  VPCStack:
+    Condition: HasVPC
+    Value: !GetAtt [ VPCStack, Outputs.VPCStackName ]
+    Export:
+      Name: !Sub 'VPCStackName-${AWS::StackName}'
+  EC2Stack:
+    Condition: HasEC2
+    Value: !GetAtt [ EC2Stack, Outputs.EC2StackName ]
+    Export:
+      Name: !Sub 'EC2Stack-${AWS::StackName}'

@@ -9,6 +9,38 @@ Parameters:
 
 
 Resources:
+  VPCPeeringRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: 'VPCPeeringRole'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            AWS:
+            - !Sub '${AWS::AccountId}'
+          Action: sts:AssumeRole
+      Path: '/'
+      ManagedPolicyArns:
+      - 'arn:aws:iam::aws:policy/ReadOnlyAccess'
+      Policies:
+      - PolicyName: AmazonEC2Policy
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - 'ec2:AcceptVpcPeeringConnection'
+            - 'ec2:CreateRoute'
+            - 'ec2:Deleteroute'
+            - 'ec2:CreateTags'
+            - 'ec2:DeleteTags'
+            - 'ec2:RevokeSecurityGroup*'
+            - 'ec2:UpdateSecurityGroup*'
+            - 'ec2:AuthorizeSecurityGroup*'
+            Resource: '*'
+
   CustomResourceLambdaRole:
     Type: 'AWS::IAM::Role'
     Properties:
@@ -19,6 +51,8 @@ Resources:
             Action: 'sts:AssumeRole'
             Principal:
               Service: lambda.amazonaws.com
+      ManagedPolicyArns:
+      - 'arn:aws:iam::aws:policy/ReadOnlyAccess'
       Policies:
       - PolicyName: AmazonCloudWatchPolicy
         PolicyDocument:
@@ -48,6 +82,16 @@ Resources:
             - 'cognito-idp:*ResourceServer'
             - 'cognito-idp:*IdentityProvider'
             Resource: '*'
+      - PolicyName: AmazonSTSPolicy
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - 'sts:AssumeRole'
+            - 'sts:PassRole'
+            Resource:
+            - !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:role/VPCPeeringRole'
 
   CustomResourceLambda:
     Type: 'AWS::Lambda::Function'

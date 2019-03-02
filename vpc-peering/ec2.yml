@@ -1,0 +1,131 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'EC2 resources'
+
+
+Parameters:
+  NameTag:
+    Type: String
+  TargetPort:
+    Type: String
+  SecurityGroup:
+    Type: String
+  SourceVPCCidrBlock:
+    Type: String
+  SourceVPCIpv6CidrBlock:
+    Type: String
+    Default: ''
+  TargetAccountId:
+    Type: String
+  TargetRegion:
+    Type: String
+
+
+Conditions:
+  HasIpv6: !And
+  - !Not [ !Equals [ 'false', !Ref 'SourceVPCIpv6CidrBlock' ]]
+  - !Not [ !Equals [ '', !Ref 'SourceVPCIpv6CidrBlock' ]]
+
+
+Resources:
+  AuthorizeSecurityGroup:
+    Type: 'Custom::AuthorizeSecurityGroup'
+    Version: 1.0
+    Properties:
+      ServiceToken: !Sub 'arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:generic-custom-resource-provider'
+      RoleArn: !Sub 'arn:${AWS::Partition}:iam::${TargetAccountId}:role/VPCPeeringRole'
+      AgentService: ec2
+      AgentType: client
+      AgentRegion: !Sub '${TargetRegion}'
+      # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2.html#EC2.Client.authorize_security_group_ingress
+      AgentCreateMethod: authorize_security_group_ingress
+      AgentDeleteMethod: revoke_security_group_ingress
+      AgentCreateArgs: !Sub |
+        {
+          "GroupId": "${SecurityGroup}",
+          "IpPermissions": [
+            {
+              "FromPort": ${TargetPort},
+              "IpProtocol": "tcp",
+              "IpRanges": [
+                {
+                  "CidrIp": "${SourceVPCCidrBlock}",
+                  "Description": "${NameTag} VPC peering access."
+                }
+              ],
+              "ToPort": ${TargetPort}
+            }
+          ]
+        }
+      AgentDeleteArgs: !Sub |
+        {
+          "GroupId": "${SecurityGroup}",
+          "IpPermissions": [
+            {
+              "FromPort": ${TargetPort},
+              "IpProtocol": "tcp",
+              "IpRanges": [
+                {
+                  "CidrIp": "${SourceVPCCidrBlock}",
+                  "Description": "${NameTag} VPC peering access."
+                }
+              ],
+              "ToPort": ${TargetPort}
+            }
+          ]
+        }
+
+  AuthorizeSecurityGroupIpv6:
+    Type: 'Custom::AuthorizeSecurityGroup'
+    Condition: HasIpv6
+    Version: 1.0
+    Properties:
+      ServiceToken: !Sub 'arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:generic-custom-resource-provider'
+      RoleArn: !Sub 'arn:${AWS::Partition}:iam::${TargetAccountId}:role/VPCPeeringRole'
+      AgentService: ec2
+      AgentType: client
+      AgentRegion: !Sub '${TargetRegion}'
+      # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2.html#EC2.Client.authorize_security_group_ingress
+      AgentCreateMethod: authorize_security_group_ingress
+      AgentDeleteMethod: revoke_security_group_ingress
+      AgentCreateArgs: !Sub |
+        {
+          "GroupId": "${SecurityGroup}",
+          "IpPermissions": [
+            {
+              "FromPort": ${TargetPort},
+              "IpProtocol": "tcp",
+              "Ipv6Ranges": [
+                {
+                  "CidrIpv6": "${SourceVPCIpv6CidrBlock}",
+                  "Description": "${NameTag} VPC peering access (IPv6)."
+                }
+              ],
+              "ToPort": ${TargetPort}
+            }
+          ]
+        }
+      AgentDeleteArgs: !Sub |
+        {
+          "GroupId": "${SecurityGroup}",
+          "IpPermissions": [
+            {
+              "FromPort": ${TargetPort},
+              "IpProtocol": "tcp",
+              "Ipv6Ranges": [
+                {
+                  "CidrIpv6": "${SourceVPCIpv6CidrBlock}",
+                  "Description": "${NameTag} VPC peering access (IPv6)."
+                }
+              ],
+              "ToPort": ${TargetPort}
+            }
+          ]
+        }
+
+
+Outputs:
+  EC2StackName:
+    Value: !Ref 'AWS::StackName'
+    Export:
+      Name: !Sub 'EC2StackName-${AWS::StackName}'

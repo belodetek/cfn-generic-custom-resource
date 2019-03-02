@@ -63,12 +63,12 @@
 #### package assets
 > 📦 package CloudFormation templates and Lambda function(s) and upload to S3
 
-    for template in lambda client-vpn client-vpn-main; do
+    pushd client-vpn; for template in lambda main client-vpn; do
         aws cloudformation package\
           --template-file ${template}-template.yaml\
           --s3-bucket ${bucket}\
           --output-template-file ${template}.yaml
-    done
+    done; popd
 
 
 #### deploy stack
@@ -81,8 +81,8 @@
     cidr=172.16.0.0/22
 
 
-    aws cloudformation deploy\
-      --template-file client-vpn-main.yaml\
+    pushd client-vpn; aws cloudformation deploy\
+      --template-file main.yaml\
       --stack-name ${stack_name}\
       --capabilities CAPABILITY_IAM\
       --parameter-overrides\
@@ -96,7 +96,7 @@
       Name=${stack_name}\
       Region=${AWS_REGION}\
       Profile=${AWS_PROFILE}\
-      AccountId=$(aws sts get-caller-identity | jq -r '.Account')
+      AccountId=$(aws sts get-caller-identity | jq -r '.Account'); popd
 
 
 #### download profile
@@ -166,12 +166,12 @@ aws s3api put-bucket-policy\
 
 #### package assets
 
-    for template in lambda cognito cognito-main; do
+    pushd cognito-idp; for template in lambda main cognito; do
         aws cloudformation package\
           --template-file ${template}-template.yaml\
           --s3-bucket ${bucket}\
           --output-template-file ${template}.yaml
-    done
+    done; popd
 
 
 #### deploy stack
@@ -179,8 +179,8 @@ aws s3api put-bucket-policy\
     stack_name='c0gn1t0-demo'
     metadata_url=https://${bucket}.s3.amazonaws.com/GoogleIDPMetadata-${domain_name}.xml
 
-    aws cloudformation deploy\
-      --template-file cognito-main.yaml\
+    pushd cognito-idp; aws cloudformation deploy\
+      --template-file main.yaml\
       --stack-name ${stack_name}\
       --capabilities CAPABILITY_IAM\
       --parameter-overrides\
@@ -190,7 +190,7 @@ aws s3api put-bucket-policy\
       Name=${stack_name}\
       Region=${AWS_REGION}\
       Profile=${AWS_PROFILE}\
-      AccountId=$(aws sts get-caller-identity | jq -r '.Account')
+      AccountId=$(aws sts get-caller-identity | jq -r '.Account'); popd
 
 
     cognito_stack=$(aws cloudformation list-exports\
@@ -212,6 +212,115 @@ aws s3api put-bucket-policy\
 * set `ACS URL` as per above
 * set `Entity ID` as per above
 * continue with [ALB configuration](https://aws.amazon.com/blogs/aws/built-in-authentication-in-alb/)
+
+
+
+### VPC peering demo
+> creates a peering connection between source and destination VPCs, including tags and routes in both directions
+
+#### package assets
+
+    pushd vpc-peering; for template in lambda main; do
+        aws cloudformation package\
+          --template-file ${template}-template.yaml\
+          --s3-bucket ${bucket}\
+          --output-template-file ${template}.yaml
+    done; popd
+
+
+#### create IAM role
+> ☢ ensure appropriate [VPCPeeringRole](blob/master/lambda-template.yaml#L12) exists in the VPC accepter AWS account and review IAM role permissions
+
+      VPCPeeringRole:
+        Type: 'AWS::IAM::Role'
+        Properties:
+          RoleName: 'VPCPeeringRole'
+          AssumeRolePolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+            - Effect: Allow
+              Principal:
+                AWS:
+                # list your VPC peering requester (source) AWS accounts here
+                - '123456789000'
+                ...
+              Action: sts:AssumeRole
+          Path: '/'
+          ...
+
+
+#### update IAM role
+> ☢ add VPC requester AWS accounts to [CustomResourceLambdaRole](blob/master/lambda-template.yaml#L94) under the `AmazonSTSPolicy` policy and review IAM role permissions
+
+      - PolicyName: AmazonSTSPolicy
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - 'sts:AssumeRole'
+            - 'sts:PassRole'
+            Resource:
+            # list your VPC peering accepter (target) AWS accounts here
+            - !Sub 'arn:${AWS::Partition}:iam::123456789001:role/VPCPeeringRole'
+            ...
+
+
+#### deploy stack
+> 📝 optionally enable EC2 nested stack and supply `SecurityGroup` in the accepter VPC as well as `TargetPort`
+
+    # peering between VPCs in this mock account 123456789000 (requester) and 123456789001 (accepter)
+    stack_name='vpc-peering-demo'
+
+    # create IPv6 routes (both VPCs must be IPv6)
+    ipv6='false'
+
+    # requester VPC
+    source_vpc='vpc-abcdef1234567890'
+
+    # comma separated list of one or more route table id(s) in the requester VPC'
+    source_route_table_ids='rtb-abcdef1234567890'
+
+    # accepter VPC
+    source_vpc='vpc-1234567890abcdef'
+
+    # VPC accepter AWS account
+    target_account_id=123456789001
+
+    # VPC accepter AWS region
+    target_region=${AWS_REGION}
+
+    # comma separated list of one or more route table id(s) in the accepter VPC'
+    target_route_table_ids='rtb-1234567890abcdef'
+
+
+    source_route_table_ids=($(echo ${source_route_table_ids} | sed 's/,/ /g' | tr ' ' '\n'))\
+      && source_route_tables=${#source_route_table_ids[@]}\
+      && source_route_table_ids="$(echo ${source_route_table_ids[*]} | tr ' ' ',')"
+
+    target_route_table_ids=($(echo ${target_route_table_ids} | sed 's/,/ /g' | tr ' ' '\n'))\
+      && target_route_tables=${#target_route_table_ids[@]}\
+      && target_route_table_ids="$(echo ${target_route_table_ids[*]} | tr ' ' ',')"
+
+    pushd vpc-peering; aws cloudformation deploy\
+      --template-file main.yaml\
+      --stack-name ${stack_name}\
+      --capabilities CAPABILITY_IAM\
+      --parameter-overrides\
+      SourceVpcId=${source_vpc}\
+      SourceRouteTableIds=${source_route_table_ids}\
+      SourceRouteTables=${source_route_tables}\
+      TargetRegion=${target_region}\
+      TargetAccountId=${target_account_id}\
+      TargetVpcId=${target_vpc}\
+      TargetRouteTableIds=${target_route_table_ids}\
+      TargetRouteTables=${target_route_tables}\
+      EC2Template=false\
+      --tags\
+      Name=${stack_name}\
+      Region=${AWS_REGION}\
+      Profile=${AWS_PROFILE}\
+      AccountId=$(aws sts get-caller-identity | jq -r '.Account'); popd
 
 
 

@@ -1,0 +1,715 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'VPC resources'
+
+
+Parameters:
+  NameTag:
+    Type: String
+  IPv6:
+    Type: String
+  SourceVpcId:
+    Type: String
+  SourceRouteTableIds:
+    Type: String
+  SourceRouteTables:
+    Type: String
+  TargetRouteTableIds:
+    Type: String
+  TargetRouteTables:
+    Type: String
+  TargetRegion:
+    Type: String
+  TargetAccountId:
+    Type: String
+  TargetVpcId:
+    Type: String
+
+
+Conditions:
+  HasIPv6: !And
+  - !Equals [ !Sub '${AWS::Region}', !Sub '${TargetRegion}' ]
+  - !Equals [ 'true', !Ref 'IPv6' ]
+  HasSourceRouteTables: !And
+  - !Not [ !Equals [ '', !Ref 'SourceRouteTableIds' ]]
+  - !Not [ !Equals [ '', !Ref 'SourceRouteTables' ]]
+  HasTargetRouteTables: !And
+  - !Not [ !Equals [ '', !Ref 'TargetRouteTableIds' ]]
+  - !Not [ !Equals [ '', !Ref 'TargetRouteTables' ]]
+
+  # source route table conditions
+  Has1SourceRoute: !And
+  - !Equals [ 1, !Ref 'SourceRouteTables' ]
+  - !Condition HasSourceRouteTables
+  Has2SourceRoutes: !And
+  - !Equals [ 2, !Ref 'SourceRouteTables' ]
+  - !Condition HasSourceRouteTables
+  Has3SourceRoutes: !And
+  - !Equals [ 3, !Ref 'SourceRouteTables' ]
+  - !Condition HasSourceRouteTables
+  Has4SourceRoutes: !And
+  - !Equals [ 4, !Ref 'SourceRouteTables' ]
+  - !Condition HasSourceRouteTables
+  Has5SourceRoutes: !And
+  - !Equals [ 5, !Ref 'SourceRouteTables' ]
+  - !Condition HasSourceRouteTables
+  Has6SourceRoutes: !And
+  - !Equals [ 6, !Ref 'SourceRouteTables' ]
+  - !Condition HasSourceRouteTables
+  HasOneSourceRoute: !Or
+  - !Condition Has6SourceRoutes
+  - !Condition Has5SourceRoutes
+  - !Condition Has4SourceRoutes
+  - !Condition Has3SourceRoutes
+  - !Condition Has2SourceRoutes
+  - !Condition Has1SourceRoute
+  HasTwoSourceRoutes: !Or
+  - !Condition Has6SourceRoutes
+  - !Condition Has5SourceRoutes
+  - !Condition Has4SourceRoutes
+  - !Condition Has3SourceRoutes
+  - !Condition Has2SourceRoutes
+  HasThreeSourceRoutes: !Or
+  - !Condition Has6SourceRoutes
+  - !Condition Has5SourceRoutes
+  - !Condition Has4SourceRoutes
+  - !Condition Has3SourceRoutes
+  HasFourSourceRoutes: !Or
+  - !Condition Has6SourceRoutes
+  - !Condition Has5SourceRoutes
+  - !Condition Has4SourceRoutes
+  HasFiveSourceRoutes: !Or
+  - !Condition Has6SourceRoutes
+  - !Condition Has5SourceRoutes
+  HasSixSourceRoutes: !Condition Has6SourceRoutes
+
+  # source route table conditions (IPv6)
+  Has1SourceIpv6Route: !And
+  - !Equals [ 1, !Ref 'SourceRouteTables' ]
+  - !Condition HasSourceRouteTables
+  - !Condition HasIPv6
+  Has2SourceIpv6Routes: !And
+  - !Equals [ 2, !Ref 'SourceRouteTables' ]
+  - !Condition HasSourceRouteTables
+  - !Condition HasIPv6
+  Has3SourceIpv6Routes: !And
+  - !Equals [ 3, !Ref 'SourceRouteTables' ]
+  - !Condition HasSourceRouteTables
+  - !Condition HasIPv6
+  Has4SourceIpv6Routes: !And
+  - !Equals [ 4, !Ref 'SourceRouteTables' ]
+  - !Condition HasSourceRouteTables
+  - !Condition HasIPv6
+  Has5SourceIpv6Routes: !And
+  - !Equals [ 5, !Ref 'SourceRouteTables' ]
+  - !Condition HasSourceRouteTables
+  - !Condition HasIPv6
+  Has6SourceIpv6Routes: !And
+  - !Equals [ 6, !Ref 'SourceRouteTables' ]
+  - !Condition HasSourceRouteTables
+  - !Condition HasIPv6
+  HasOneSourceIpv6Route: !Or
+  - !Condition Has6SourceIpv6Routes
+  - !Condition Has5SourceIpv6Routes
+  - !Condition Has4SourceIpv6Routes
+  - !Condition Has3SourceIpv6Routes
+  - !Condition Has2SourceIpv6Routes
+  - !Condition Has1SourceIpv6Route
+  HasTwoSourceIpv6Routes: !Or
+  - !Condition Has6SourceIpv6Routes
+  - !Condition Has5SourceIpv6Routes
+  - !Condition Has4SourceIpv6Routes
+  - !Condition Has3SourceIpv6Routes
+  - !Condition Has2SourceIpv6Routes
+  HasThreeSourceIpv6Routes: !Or
+  - !Condition Has6SourceIpv6Routes
+  - !Condition Has5SourceIpv6Routes
+  - !Condition Has4SourceIpv6Routes
+  - !Condition Has3SourceIpv6Routes
+  HasFourSourceIpv6Routes: !Or
+  - !Condition Has6SourceIpv6Routes
+  - !Condition Has5SourceIpv6Routes
+  - !Condition Has4SourceIpv6Routes
+  HasFiveSourceIpv6Routes: !Or
+  - !Condition Has6SourceIpv6Routes
+  - !Condition Has5SourceIpv6Routes
+  HasSixSourceIpv6Routes: !Condition Has6SourceIpv6Routes
+
+  # target route table conditions
+  Has1TargetRoute: !And
+  - !Equals [ 1, !Ref 'TargetRouteTables' ]
+  - !Condition HasTargetRouteTables
+  Has2TargetRoutes: !And
+  - !Equals [ 2, !Ref 'TargetRouteTables' ]
+  - !Condition HasTargetRouteTables
+  Has3TargetRoutes: !And
+  - !Equals [ 3, !Ref 'TargetRouteTables' ]
+  - !Condition HasTargetRouteTables
+  Has4TargetRoutes: !And
+  - !Equals [ 4, !Ref 'TargetRouteTables' ]
+  - !Condition HasTargetRouteTables
+  Has5TargetRoutes: !And
+  - !Equals [ 5, !Ref 'TargetRouteTables' ]
+  - !Condition HasTargetRouteTables
+  Has6TargetRoutes: !And
+  - !Equals [ 6, !Ref 'TargetRouteTables' ]
+  - !Condition HasTargetRouteTables
+  HasOneTargetRoute: !Or
+  - !Condition Has6TargetRoutes
+  - !Condition Has5TargetRoutes
+  - !Condition Has4TargetRoutes
+  - !Condition Has3TargetRoutes
+  - !Condition Has2TargetRoutes
+  - !Condition Has1TargetRoute
+  HasTwoTargetRoutes: !Or
+  - !Condition Has6TargetRoutes
+  - !Condition Has5TargetRoutes
+  - !Condition Has4TargetRoutes
+  - !Condition Has3TargetRoutes
+  - !Condition Has2TargetRoutes
+  HasThreeTargetRoutes: !Or
+  - !Condition Has6TargetRoutes
+  - !Condition Has5TargetRoutes
+  - !Condition Has4TargetRoutes
+  - !Condition Has3TargetRoutes
+  HasFourTargetRoutes: !Or
+  - !Condition Has6TargetRoutes
+  - !Condition Has5TargetRoutes
+  - !Condition Has4TargetRoutes
+  HasFiveTargetRoutes: !Or
+  - !Condition Has6TargetRoutes
+  - !Condition Has5TargetRoutes
+  HasSixTargetRoutes: !Condition Has6TargetRoutes
+
+  # target route table conditions (IPv6)
+  Has1TargetIpv6Route: !And
+  - !Equals [ 1, !Ref 'TargetRouteTables' ]
+  - !Condition HasTargetRouteTables
+  - !Condition HasIPv6
+  Has2TargetIpv6Routes: !And
+  - !Equals [ 2, !Ref 'TargetRouteTables' ]
+  - !Condition HasTargetRouteTables
+  - !Condition HasIPv6
+  Has3TargetIpv6Routes: !And
+  - !Equals [ 3, !Ref 'TargetRouteTables' ]
+  - !Condition HasTargetRouteTables
+  - !Condition HasIPv6
+  Has4TargetIpv6Routes: !And
+  - !Equals [ 4, !Ref 'TargetRouteTables' ]
+  - !Condition HasTargetRouteTables
+  - !Condition HasIPv6
+  Has5TargetIpv6Routes: !And
+  - !Equals [ 5, !Ref 'TargetRouteTables' ]
+  - !Condition HasTargetRouteTables
+  - !Condition HasIPv6
+  Has6TargetIpv6Routes: !And
+  - !Equals [ 6, !Ref 'TargetRouteTables' ]
+  - !Condition HasTargetRouteTables
+  - !Condition HasIPv6
+  HasOneTargetIpv6Route: !Or
+  - !Condition Has6TargetIpv6Routes
+  - !Condition Has5TargetIpv6Routes
+  - !Condition Has4TargetIpv6Routes
+  - !Condition Has3TargetIpv6Routes
+  - !Condition Has2TargetIpv6Routes
+  - !Condition Has1TargetIpv6Route
+  HasTwoTargetIpv6Routes: !Or
+  - !Condition Has6TargetIpv6Routes
+  - !Condition Has5TargetIpv6Routes
+  - !Condition Has4TargetIpv6Routes
+  - !Condition Has3TargetIpv6Routes
+  - !Condition Has2TargetIpv6Routes
+  HasThreeTargetIpv6Routes: !Or
+  - !Condition Has6TargetIpv6Routes
+  - !Condition Has5TargetIpv6Routes
+  - !Condition Has4TargetIpv6Routes
+  - !Condition Has3TargetIpv6Routes
+  HasFourTargetIpv6Routes: !Or
+  - !Condition Has6TargetIpv6Routes
+  - !Condition Has5TargetIpv6Routes
+  - !Condition Has4TargetIpv6Routes
+  HasFiveTargetIpv6Routes: !Or
+  - !Condition Has6TargetIpv6Routes
+  - !Condition Has5TargetIpv6Routes
+  HasSixTargetIpv6Routes: !Condition Has6TargetIpv6Routes
+
+
+Resources:
+  PeeringConnection:
+    Type: 'AWS::EC2::VPCPeeringConnection'
+    Properties:
+      VpcId: !Ref 'SourceVpcId'
+      PeerVpcId: !Ref 'TargetVpcId'
+      PeerOwnerId: !Ref 'TargetAccountId'
+      PeerRegion: !Ref 'TargetRegion'
+      PeerRoleArn: !Sub 'arn:aws:iam::${TargetAccountId}:role/VPCPeeringRole'
+      Tags:
+      - Key: Name
+        Value: !Ref 'NameTag'
+
+  TagRemotePeeringConnection:
+    Type: 'Custom::TagRemotePeeringConnection'
+    Version: 1.0
+    DependsOn: PeeringConnection
+    Properties:
+      ServiceToken: !Sub 'arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:generic-custom-resource-provider'
+      RoleArn: !Sub 'arn:${AWS::Partition}:iam::${TargetAccountId}:role/VPCPeeringRole'
+      AgentService: ec2
+      AgentType: client
+      AgentRegion: !Sub '${TargetRegion}'
+      AgentCreateMethod: create_tags
+      AgentDeleteMethod: delete_tags
+      AgentCreateArgs:
+        Resources:
+        - !Sub '${PeeringConnection}'
+        Tags:
+        - Key: 'Name'
+          Value: !Sub '${NameTag}'
+        - Key: 'StackId'
+          Value: !Sub '${AWS::StackId}'
+        - Key: 'StackName'
+          Value: !Sub '${AWS::StackName}'
+        - Key: 'LogicalResourceId'
+          Value: 'TagRemotePeeringConnection'
+      AgentDeleteArgs:
+        Resources:
+        - !Sub '${PeeringConnection}'
+        Tags:
+        - Key: 'Name'
+          Value: !Sub '${NameTag}'
+        - Key: 'StackId'
+          Value: !Sub '${AWS::StackId}'
+        - Key: 'StackName'
+          Value: !Sub '${AWS::StackName}'
+        - Key: 'LogicalResourceId'
+          Value: 'TagRemotePeeringConnection'
+
+  RequesterCidrBlock:
+    Type: 'Custom::VPCPeeringConnectionInfo'
+    Version: 1.0
+    Properties:
+      ServiceToken: !Sub 'arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:generic-custom-resource-provider'
+      AgentService: ec2
+      AgentType: resource
+      # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2.html#EC2.VpcPeeringConnection.accepter_vpc_info
+      AgentCreateMethod: 'requester_vpc_info'
+      AgentResourceId: 'CidrBlock'
+      AgentWaitQueryExpr: '$.CidrBlock'
+      AgentCreateArgs:
+        ResourceName: 'VpcPeeringConnection'
+        ResourceId: !Sub '${PeeringConnection}'
+
+  RequesterIpv6CidrBlock:
+    Type: 'Custom::VPCPeeringConnectionInfo'
+    Condition: HasIPv6
+    Version: 1.0
+    Properties:
+      ServiceToken: !Sub 'arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:generic-custom-resource-provider'
+      AgentService: ec2
+      AgentType: resource
+      AgentCreateMethod: 'requester_vpc_info'
+      AgentResourceId: 'Ipv6CidrBlock'
+      AgentWaitQueryExpr: '$..Ipv6CidrBlock'
+      AgentCreateArgs:
+        ResourceName: 'VpcPeeringConnection'
+        ResourceId: !Sub '${PeeringConnection}'
+
+  AccepterCidrBlock:
+    Type: 'Custom::VPCPeeringConnectionInfo'
+    Version: 1.0
+    Properties:
+      ServiceToken: !Sub 'arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:generic-custom-resource-provider'
+      AgentService: ec2
+      AgentType: resource
+      AgentCreateMethod: 'accepter_vpc_info'
+      AgentResourceId: 'CidrBlock'
+      AgentWaitQueryExpr: '$.CidrBlock'
+      AgentCreateArgs:
+        ResourceName: 'VpcPeeringConnection'
+        ResourceId: !Sub '${PeeringConnection}'
+
+  AccepterIpv6CidrBlock:
+    Type: 'Custom::VPCPeeringConnectionInfo'
+    Condition: HasIPv6
+    Version: 1.0
+    Properties:
+      ServiceToken: !Sub 'arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:generic-custom-resource-provider'
+      AgentService: ec2
+      AgentType: resource
+      AgentCreateMethod: 'accepter_vpc_info'
+      AgentResourceId: 'Ipv6CidrBlock'
+      AgentWaitQueryExpr: '$..Ipv6CidrBlock'
+      AgentCreateArgs:
+        ResourceName: 'VpcPeeringConnection'
+        ResourceId: !Sub '${PeeringConnection}'
+
+  PeeringRouteFirst:
+    Type: 'AWS::EC2::Route'
+    Condition: HasOneSourceRoute
+    Properties:
+      RouteTableId: !Select [ 0, !Split [ ',', !Ref 'SourceRouteTableIds' ]]
+      DestinationCidrBlock: !Sub '${AccepterCidrBlock.CidrBlock}'
+      VpcPeeringConnectionId: !Ref 'PeeringConnection'
+
+  PeeringRouteSecond:
+    Type: 'AWS::EC2::Route'
+    Condition: HasTwoSourceRoutes
+    Properties:
+      RouteTableId: !Select [ 1, !Split [ ',', !Ref 'SourceRouteTableIds' ]]
+      DestinationCidrBlock: !Sub '${AccepterCidrBlock.CidrBlock}'
+      VpcPeeringConnectionId: !Ref 'PeeringConnection'
+
+  PeeringRouteThird:
+    Type: 'AWS::EC2::Route'
+    Condition: HasThreeSourceRoutes
+    Properties:
+      RouteTableId: !Select [ 2, !Split [ ',', !Ref 'SourceRouteTableIds' ]]
+      DestinationCidrBlock: !Sub '${AccepterCidrBlock.CidrBlock}'
+      VpcPeeringConnectionId: !Ref 'PeeringConnection'
+
+  PeeringRouteFourth:
+    Type: 'AWS::EC2::Route'
+    Condition: HasFourSourceRoutes
+    Properties:
+      RouteTableId: !Select [ 3, !Split [ ',', !Ref 'SourceRouteTableIds' ]]
+      DestinationCidrBlock: !Sub '${AccepterCidrBlock.CidrBlock}'
+      VpcPeeringConnectionId: !Ref 'PeeringConnection'
+
+  PeeringRouteFifth:
+    Type: 'AWS::EC2::Route'
+    Condition: HasFiveSourceRoutes
+    Properties:
+      RouteTableId: !Select [ 4, !Split [ ',', !Ref 'SourceRouteTableIds' ]]
+      DestinationCidrBlock: !Sub '${AccepterCidrBlock.CidrBlock}'
+      VpcPeeringConnectionId: !Ref 'PeeringConnection'
+
+  PeeringRouteSixth:
+    Type: 'AWS::EC2::Route'
+    Condition: HasSixSourceRoutes
+    Properties:
+      RouteTableId: !Select [ 5, !Split [ ',', !Ref 'SourceRouteTableIds' ]]
+      DestinationCidrBlock: !Sub '${AccepterCidrBlock.CidrBlock}'
+      VpcPeeringConnectionId: !Ref 'PeeringConnection'
+
+  PeeringIpv6RouteFirst:
+    Type: 'AWS::EC2::Route'
+    Condition: HasOneSourceIpv6Route
+    Properties:
+      RouteTableId: !Select [ 0, !Split [ ',', !Ref 'SourceRouteTableIds' ]]
+      DestinationIpv6CidrBlock: !Sub '${AccepterIpv6CidrBlock.Ipv6CidrBlock}'
+      VpcPeeringConnectionId: !Ref 'PeeringConnection'
+
+  PeeringIpv6RouteSecond:
+    Type: 'AWS::EC2::Route'
+    Condition: HasTwoSourceIpv6Routes
+    Properties:
+      RouteTableId: !Select [ 1, !Split [ ',', !Ref 'SourceRouteTableIds' ]]
+      DestinationIpv6CidrBlock: !Sub '${AccepterIpv6CidrBlock.Ipv6CidrBlock}'
+      VpcPeeringConnectionId: !Ref 'PeeringConnection'
+
+  PeeringIpv6RouteThird:
+    Type: 'AWS::EC2::Route'
+    Condition: HasThreeSourceIpv6Routes
+    Properties:
+      RouteTableId: !Select [ 2, !Split [ ',', !Ref 'SourceRouteTableIds' ]]
+      DestinationIpv6CidrBlock: !Sub '${AccepterIpv6CidrBlock.Ipv6CidrBlock}'
+      VpcPeeringConnectionId: !Ref 'PeeringConnection'
+
+  PeeringIpv6RouteFourth:
+    Type: 'AWS::EC2::Route'
+    Condition: HasFourSourceIpv6Routes
+    Properties:
+      RouteTableId: !Select [ 3, !Split [ ',', !Ref 'SourceRouteTableIds' ]]
+      DestinationIpv6CidrBlock: !Sub '${AccepterIpv6CidrBlock.Ipv6CidrBlock}'
+      VpcPeeringConnectionId: !Ref 'PeeringConnection'
+
+  PeeringIpv6RouteFifth:
+    Type: 'AWS::EC2::Route'
+    Condition: HasFiveSourceIpv6Routes
+    Properties:
+      RouteTableId: !Select [ 4, !Split [ ',', !Ref 'SourceRouteTableIds' ]]
+      DestinationIpv6CidrBlock: !Sub '${AccepterIpv6CidrBlock.Ipv6CidrBlock}'
+      VpcPeeringConnectionId: !Ref 'PeeringConnection'
+
+  PeeringIpv6RouteSixth:
+    Type: 'AWS::EC2::Route'
+    Condition: HasSixSourceIpv6Routes
+    Properties:
+      RouteTableId: !Select [ 5, !Split [ ',', !Ref 'SourceRouteTableIds' ]]
+      DestinationIpv6CidrBlock: !Sub '${AccepterIpv6CidrBlock.Ipv6CidrBlock}'
+      VpcPeeringConnectionId: !Ref 'PeeringConnection'
+
+  RemotePeeringRouteOne:
+    Type: 'Custom::CreatePeeringRoute'
+    Version: 1.0
+    Condition: HasOneTargetRoute
+    DependsOn: PeeringConnection
+    Properties:
+      ServiceToken: !Sub 'arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:generic-custom-resource-provider'
+      RoleArn: !Sub 'arn:${AWS::Partition}:iam::${TargetAccountId}:role/VPCPeeringRole'
+      AgentService: ec2
+      AgentType: client
+      AgentRegion: !Sub '${TargetRegion}'
+      # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2.html#EC2.Client.create_route
+      AgentCreateMethod: create_route
+      AgentDeleteMethod: delete_route
+      AgentCreateArgs:
+        DestinationCidrBlock: !Sub '${RequesterCidrBlock.CidrBlock}'
+        RouteTableId: !Select [ 0, !Split [ ',', !Ref 'TargetRouteTableIds' ]]
+        VpcPeeringConnectionId: !Sub '${PeeringConnection}'
+      AgentDeleteArgs:
+        DestinationCidrBlock: !Sub '${RequesterCidrBlock.CidrBlock}'
+        RouteTableId: !Select [ 0, !Split [ ',', !Ref 'TargetRouteTableIds' ]]
+
+  RemotePeeringRouteTwo:
+    Type: 'Custom::CreatePeeringRoute'
+    Version: 1.0
+    Condition: HasTwoTargetRoutes
+    DependsOn: PeeringConnection
+    Properties:
+      ServiceToken: !Sub 'arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:generic-custom-resource-provider'
+      RoleArn: !Sub 'arn:${AWS::Partition}:iam::${TargetAccountId}:role/VPCPeeringRole'
+      AgentService: ec2
+      AgentType: client
+      AgentRegion: !Sub '${TargetRegion}'
+      AgentCreateMethod: create_route
+      AgentDeleteMethod: delete_route
+      AgentCreateArgs:
+        DestinationCidrBlock: !Sub '${RequesterCidrBlock.CidrBlock}'
+        RouteTableId: !Select [ 1, !Split [ ',', !Ref 'TargetRouteTableIds' ]]
+        VpcPeeringConnectionId: !Sub '${PeeringConnection}'
+      AgentDeleteArgs:
+        DestinationCidrBlock: !Sub '${RequesterCidrBlock.CidrBlock}'
+        RouteTableId: !Select [ 1, !Split [ ',', !Ref 'TargetRouteTableIds' ]]
+
+  RemotePeeringRouteThree:
+    Type: 'Custom::CreatePeeringRoute'
+    Version: 1.0
+    Condition: HasThreeTargetRoutes
+    DependsOn: PeeringConnection
+    Properties:
+      ServiceToken: !Sub 'arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:generic-custom-resource-provider'
+      RoleArn: !Sub 'arn:${AWS::Partition}:iam::${TargetAccountId}:role/VPCPeeringRole'
+      AgentService: ec2
+      AgentType: client
+      AgentRegion: !Sub '${TargetRegion}'
+      AgentCreateMethod: create_route
+      AgentDeleteMethod: delete_route
+      AgentCreateArgs:
+        DestinationCidrBlock: !Sub '${RequesterCidrBlock.CidrBlock}'
+        RouteTableId: !Select [ 2, !Split [ ',', !Ref 'TargetRouteTableIds' ]]
+        VpcPeeringConnectionId: !Sub '${PeeringConnection}'
+      AgentDeleteArgs:
+        DestinationCidrBlock: !Sub '${RequesterCidrBlock.CidrBlock}'
+        RouteTableId: !Select [ 2, !Split [ ',', !Ref 'TargetRouteTableIds' ]]
+
+  RemotePeeringRouteFour:
+    Type: 'Custom::CreatePeeringRoute'
+    Version: 1.0
+    Condition: HasFourTargetRoutes
+    DependsOn: PeeringConnection
+    Properties:
+      ServiceToken: !Sub 'arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:generic-custom-resource-provider'
+      RoleArn: !Sub 'arn:${AWS::Partition}:iam::${TargetAccountId}:role/VPCPeeringRole'
+      AgentService: ec2
+      AgentType: client
+      AgentRegion: !Sub '${TargetRegion}'
+      AgentCreateMethod: create_route
+      AgentDeleteMethod: delete_route
+      AgentCreateArgs:
+        DestinationCidrBlock: !Sub '${RequesterCidrBlock.CidrBlock}'
+        RouteTableId: !Select [ 3, !Split [ ',', !Ref 'TargetRouteTableIds' ]]
+        VpcPeeringConnectionId: !Sub '${PeeringConnection}'
+      AgentDeleteArgs:
+        DestinationCidrBlock: !Sub '${RequesterCidrBlock.CidrBlock}'
+        RouteTableId: !Select [ 3, !Split [ ',', !Ref 'TargetRouteTableIds' ]]
+
+  RemotePeeringRouteFive:
+    Type: 'Custom::CreatePeeringRoute'
+    Version: 1.0
+    Condition: HasFiveTargetRoutes
+    DependsOn: PeeringConnection
+    Properties:
+      ServiceToken: !Sub 'arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:generic-custom-resource-provider'
+      RoleArn: !Sub 'arn:${AWS::Partition}:iam::${TargetAccountId}:role/VPCPeeringRole'
+      AgentService: ec2
+      AgentType: client
+      AgentRegion: !Sub '${TargetRegion}'
+      AgentCreateMethod: create_route
+      AgentDeleteMethod: delete_route
+      AgentCreateArgs:
+        DestinationCidrBlock: !Sub '${RequesterCidrBlock.CidrBlock}'
+        RouteTableId: !Select [ 4, !Split [ ',', !Ref 'TargetRouteTableIds' ]]
+        VpcPeeringConnectionId: !Sub '${PeeringConnection}'
+      AgentDeleteArgs:
+        DestinationCidrBlock: !Sub '${RequesterCidrBlock.CidrBlock}'
+        RouteTableId: !Select [ 4, !Split [ ',', !Ref 'TargetRouteTableIds' ]]
+
+  RemotePeeringRouteSix:
+    Type: 'Custom::CreatePeeringRoute'
+    Version: 1.0
+    Condition: HasSixTargetRoutes
+    DependsOn: PeeringConnection
+    Properties:
+      ServiceToken: !Sub 'arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:generic-custom-resource-provider'
+      RoleArn: !Sub 'arn:${AWS::Partition}:iam::${TargetAccountId}:role/VPCPeeringRole'
+      AgentService: ec2
+      AgentType: client
+      AgentRegion: !Sub '${TargetRegion}'
+      AgentCreateMethod: create_route
+      AgentDeleteMethod: delete_route
+      AgentCreateArgs:
+        DestinationCidrBlock: !Sub '${RequesterCidrBlock.CidrBlock}'
+        RouteTableId: !Select [ 5, !Split [ ',', !Ref 'TargetRouteTableIds' ]]
+        VpcPeeringConnectionId: !Sub '${PeeringConnection}'
+      AgentDeleteArgs:
+        DestinationCidrBlock: !Sub '${RequesterCidrBlock.CidrBlock}'
+        RouteTableId: !Select [ 5, !Split [ ',', !Ref 'TargetRouteTableIds' ]]
+
+  RemotePeeringIpv6RouteOne:
+    Type: 'Custom::CreatePeeringRoute'
+    Version: 1.0
+    Condition: HasOneTargetIpv6Route
+    DependsOn: PeeringConnection
+    Properties:
+      ServiceToken: !Sub 'arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:generic-custom-resource-provider'
+      RoleArn: !Sub 'arn:${AWS::Partition}:iam::${TargetAccountId}:role/VPCPeeringRole'
+      AgentService: ec2
+      AgentType: client
+      AgentRegion: !Sub '${TargetRegion}'
+      AgentCreateMethod: create_route
+      AgentDeleteMethod: delete_route
+      AgentCreateArgs:
+        DestinationIpv6CidrBlock: !Sub '${RequesterIpv6CidrBlock.Ipv6CidrBlock}'
+        RouteTableId: !Select [ 0, !Split [ ',', !Ref 'TargetRouteTableIds' ]]
+        VpcPeeringConnectionId: !Sub '${PeeringConnection}'
+      AgentDeleteArgs:
+        DestinationIpv6CidrBlock: !Sub '${RequesterIpv6CidrBlock.Ipv6CidrBlock}'
+        RouteTableId: !Select [ 0, !Split [ ',', !Ref 'TargetRouteTableIds' ]]
+
+  RemotePeeringIpv6RouteTwo:
+    Type: 'Custom::CreatePeeringRoute'
+    Version: 1.0
+    Condition: HasTwoTargetIpv6Routes
+    DependsOn: PeeringConnection
+    Properties:
+      ServiceToken: !Sub 'arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:generic-custom-resource-provider'
+      RoleArn: !Sub 'arn:${AWS::Partition}:iam::${TargetAccountId}:role/VPCPeeringRole'
+      AgentService: ec2
+      AgentType: client
+      AgentRegion: !Sub '${TargetRegion}'
+      AgentCreateMethod: create_route
+      AgentDeleteMethod: delete_route
+      AgentCreateArgs:
+        DestinationIpv6CidrBlock: !Sub '${RequesterIpv6CidrBlock.Ipv6CidrBlock}'
+        RouteTableId: !Select [ 1, !Split [ ',', !Ref 'TargetRouteTableIds' ]]
+        VpcPeeringConnectionId: !Sub '${PeeringConnection}'
+      AgentDeleteArgs:
+        DestinationIpv6CidrBlock: !Sub '${RequesterIpv6CidrBlock.Ipv6CidrBlock}'
+        RouteTableId: !Select [ 1, !Split [ ',', !Ref 'TargetRouteTableIds' ]]
+
+  RemotePeeringIpv6RouteThree:
+    Type: 'Custom::CreatePeeringRoute'
+    Version: 1.0
+    Condition: HasThreeTargetIpv6Routes
+    DependsOn: PeeringConnection
+    Properties:
+      ServiceToken: !Sub 'arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:generic-custom-resource-provider'
+      RoleArn: !Sub 'arn:${AWS::Partition}:iam::${TargetAccountId}:role/VPCPeeringRole'
+      AgentService: ec2
+      AgentType: client
+      AgentRegion: !Sub '${TargetRegion}'
+      AgentCreateMethod: create_route
+      AgentDeleteMethod: delete_route
+      AgentCreateArgs:
+        DestinationIpv6CidrBlock: !Sub '${RequesterIpv6CidrBlock.Ipv6CidrBlock}'
+        RouteTableId: !Select [ 2, !Split [ ',', !Ref 'TargetRouteTableIds' ]]
+        VpcPeeringConnectionId: !Sub '${PeeringConnection}'
+      AgentDeleteArgs:
+        DestinationIpv6CidrBlock: !Sub '${RequesterIpv6CidrBlock.Ipv6CidrBlock}'
+        RouteTableId: !Select [ 2, !Split [ ',', !Ref 'TargetRouteTableIds' ]]
+
+  RemotePeeringIpv6RouteFour:
+    Type: 'Custom::CreatePeeringIpv6Route'
+    Version: 1.0
+    Condition: HasFourTargetIpv6Routes
+    DependsOn: PeeringConnection
+    Properties:
+      ServiceToken: !Sub 'arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:generic-custom-resource-provider'
+      RoleArn: !Sub 'arn:${AWS::Partition}:iam::${TargetAccountId}:role/VPCPeeringRole'
+      AgentService: ec2
+      AgentType: client
+      AgentRegion: !Sub '${TargetRegion}'
+      AgentCreateMethod: create_route
+      AgentDeleteMethod: delete_route
+      AgentCreateArgs:
+        DestinationIpv6CidrBlock: !Sub '${RequesterIpv6CidrBlock.Ipv6CidrBlock}'
+        RouteTableId: !Select [ 3, !Split [ ',', !Ref 'TargetRouteTableIds' ]]
+        VpcPeeringConnectionId: !Sub '${PeeringConnection}'
+      AgentDeleteArgs:
+        DestinationIpv6CidrBlock: !Sub '${RequesterIpv6CidrBlock.Ipv6CidrBlock}'
+        RouteTableId: !Select [ 3, !Split [ ',', !Ref 'TargetRouteTableIds' ]]
+
+  RemotePeeringIpv6RouteFive:
+    Type: 'Custom::CreatePeeringIpv6Route'
+    Version: 1.0
+    Condition: HasFiveTargetIpv6Routes
+    DependsOn: PeeringConnection
+    Properties:
+      ServiceToken: !Sub 'arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:generic-custom-resource-provider'
+      RoleArn: !Sub 'arn:${AWS::Partition}:iam::${TargetAccountId}:role/VPCPeeringRole'
+      AgentService: ec2
+      AgentType: client
+      AgentRegion: !Sub '${TargetRegion}'
+      AgentCreateMethod: create_route
+      AgentDeleteMethod: delete_route
+      AgentCreateArgs:
+        DestinationIpv6CidrBlock: !Sub '${RequesterIpv6CidrBlock.Ipv6CidrBlock}'
+        RouteTableId: !Select [ 4, !Split [ ',', !Ref 'TargetRouteTableIds' ]]
+        VpcPeeringConnectionId: !Sub '${PeeringConnection}'
+      AgentDeleteArgs:
+        DestinationIpv6CidrBlock: !Sub '${RequesterIpv6CidrBlock.Ipv6CidrBlock}'
+        RouteTableId: !Select [ 4, !Split [ ',', !Ref 'TargetRouteTableIds' ]]
+
+  RemotePeeringIpv6RouteSix:
+    Type: 'Custom::CreatePeeringIpv6Route'
+    Version: 1.0
+    Condition: HasSixTargetIpv6Routes
+    DependsOn: PeeringConnection
+    Properties:
+      ServiceToken: !Sub 'arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:generic-custom-resource-provider'
+      RoleArn: !Sub 'arn:${AWS::Partition}:iam::${TargetAccountId}:role/VPCPeeringRole'
+      AgentService: ec2
+      AgentType: client
+      AgentRegion: !Sub '${TargetRegion}'
+      AgentCreateMethod: create_route
+      AgentDeleteMethod: delete_route
+      AgentCreateArgs:
+        DestinationIpv6CidrBlock: !Sub '${RequesterIpv6CidrBlock.Ipv6CidrBlock}'
+        RouteTableId: !Select [ 5, !Split [ ',', !Ref 'TargetRouteTableIds' ]]
+        VpcPeeringConnectionId: !Sub '${PeeringConnection}'
+      AgentDeleteArgs:
+        DestinationIpv6CidrBlock: !Sub '${RequesterIpv6CidrBlock.Ipv6CidrBlock}'
+        RouteTableId: !Select [ 5, !Split [ ',', !Ref 'TargetRouteTableIds' ]]
+
+
+Outputs:
+  VPCStackName:
+    Value: !Ref 'AWS::StackName'
+    Export:
+      Name: !Sub 'VPCStackName-${AWS::StackName}'
+  PeeringConnection:
+    Value: !Ref 'PeeringConnection'
+    Export:
+      Name: !Sub 'PeeringConnection-${AWS::StackName}'
+  SourceVPCCidrBlock:
+    Value: !Sub '${RequesterCidrBlock.CidrBlock}'
+    Export:
+      Name: !Sub 'SourceVPCCidrBlock-${AWS::StackName}'
+  SourceVPCIpv6CidrBlock:
+    Value: !If
+    - HasIPv6
+    - !Sub '${RequesterIpv6CidrBlock.Ipv6CidrBlock}'
+    - !Sub 'false'
+    Export:
+      Name: !Sub 'SourceVPCIpv6CidrBlock-${AWS::StackName}'
