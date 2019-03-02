@@ -23,7 +23,7 @@ Resources:
           Action: sts:AssumeRole
       Path: '/'
       ManagedPolicyArns:
-      - 'arn:aws:iam::aws:policy/ReadOnlyAccess'
+      - !Sub 'arn:${AWS::Partition}:iam::aws:policy/ReadOnlyAccess'
       Policies:
       - PolicyName: AmazonEC2Policy
         PolicyDocument:
@@ -52,7 +52,7 @@ Resources:
             Principal:
               Service: lambda.amazonaws.com
       ManagedPolicyArns:
-      - 'arn:aws:iam::aws:policy/ReadOnlyAccess'
+      - !Sub 'arn:${AWS::Partition}:iam::aws:policy/ReadOnlyAccess'
       Policies:
       - PolicyName: AmazonCloudWatchPolicy
         PolicyDocument:
