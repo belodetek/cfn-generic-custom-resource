@@ -6,6 +6,18 @@
 ## CloudFormation
 > Generic CloudFormation [Custom Resources](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/template-custom-resources.html) provider. All shell-fu is Bash; `git`, `pip`, `awscli` and `jq` required.
 
+### TOC
+
+#### demo stacks
+* [Client VPN](#client-vpn-demo)
+* [Cognito IdP](#cognito-demo)
+* [VPC peering](#vpc-peering-demo)
+
+#### mock requests
+* [client requests](#mock-client-requests)
+* [resources requests](#mock-resources-requests)
+
+
 ### init
 
     git clone https://github.com/ab77/cfn-generic-custom-resource\
