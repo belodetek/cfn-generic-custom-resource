@@ -209,7 +209,7 @@ Outputs:
     Export:
       Name: !Sub 'UserPoolArn-${AWS::StackName}'
   UserPoolClientId:
-    Value: !Sub '${UserPoolClient}'
+    Value: !Sub '${UserPoolClient.ClientId}'
     Export:
       Name: !Sub 'UserPoolClientId-${AWS::StackName}'
   UserPoolDomain:
