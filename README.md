@@ -1,6 +1,6 @@
 # cfn-custom-resource-provider [![Build Status](https://travis-ci.org/ab77/cfn-generic-custom-resource.svg?branch=master)](https://travis-ci.org/ab77/cfn-generic-custom-resource)
 
-> **TL;DR** One *Custom Resource provider* to Rule Them All, inspect the [code](https://github.com/ab77/cfn-generic-custom-resource/blob/master/generic_provider/generic_provider.py) and try some [examples](#mock-client-requests) 🤓
+> **TL;DR** One *Custom Resource provider* to Rule Them All, inspect the [code](https://github.com/ab77/cfn-generic-custom-resource/blob/master/generic_provider/generic_provider.py), try some [examples](#mock-client-requests) and consider [contributing](CONTRIBUTING.md) 🤓
 
 
 ## CloudFormation
