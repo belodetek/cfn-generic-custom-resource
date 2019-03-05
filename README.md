@@ -968,7 +968,7 @@ aws s3api put-bucket-policy\
 
     pushd generic_provider
     echo "{
-      \"RequestType\": \"Delete\",
+      \"RequestType\": \"Create\",
       \"ResponseURL\": \"https://cloudformation-custom-resource-response-${AWS_REGION}.s3.amazonaws.com/\",
       \"StackId\": \"arn:aws:cloudformation:${AWS_REGION}:$(aws sts get-caller-identity | jq -r '.Account'):stack/MockStack/$(uuid)\",
       \"RequestId\": \"$(uuid)\",
