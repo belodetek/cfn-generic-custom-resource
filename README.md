@@ -3,20 +3,33 @@
 > **TL;DR** One *Custom Resource provider* to Rule Them All, inspect the [code](https://github.com/ab77/cfn-generic-custom-resource/blob/master/generic_provider/generic_provider.py), try some [examples](#mock-client-requests) and consider [contributing](CONTRIBUTING.md) 🤓
 
 
-## CloudFormation
-> Generic CloudFormation [Custom Resources](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/template-custom-resources.html) provider. All shell-fu is Bash; `git`, `pip`, `awscli` and `jq` required.
 
-### TOC
+## TOC
 
-#### demo stacks
+### CloudFormation demo stacks
 * [Client VPN](#client-vpn-demo)
 * [Cognito IdP](#cognito-demo)
 * [VPC peering](#vpc-peering-demo)
 
-#### mock requests
-* [client requests](#mock-client-requests)
+### mock requests
+
+#### client
+* [AWS Backup](#backup)
+* [Directory Services](#directory-services)
+* [IAM](#iam)
+* [KMS](#kms)
+* [Relational Database Service](#relational-database-service)
+* [Database Migration Service](#database-migration-service)
+* [EC2](#ec2)
+* [KMS](#kms)
+
+#### resources
 * [resources requests](#mock-resources-requests)
 
+
+
+## CloudFormation
+> Generic CloudFormation [Custom Resources](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/template-custom-resources.html) provider. All shell-fu is Bash; `git`, `pip`, `awscli` and `jq` required.
 
 ### init
 
