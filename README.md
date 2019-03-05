@@ -939,7 +939,7 @@ aws s3api put-bucket-policy\
 
 
 #### get-parameter
-> mock CloudFormation request to [get](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ssm.html#SSM.Client.get_parameter) SSM parameter
+> mock CloudFormation request to [get](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ssm.html#SSM.Client.get_parameter) existing SSM parameter (stored outside of stack)
 
     pushd generic_provider
     echo "{
@@ -957,6 +957,44 @@ aws s3api put-bucket-policy\
           \"AgentCreateArgs\": {
               \"Name\": \"/foo/bar\",
               \"WithDecryption\": true
+          }
+      }
+    }" | jq -c | ./generic_provider.py
+    popd
+
+
+#### put-parameter
+> mock CloudFormation request to [put](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ssm.html#SSM.Client.put_parameter) SSM parameter
+
+    pushd generic_provider
+    echo "{
+      \"RequestType\": \"Delete\",
+      \"ResponseURL\": \"https://cloudformation-custom-resource-response-${AWS_REGION}.s3.amazonaws.com/\",
+      \"StackId\": \"arn:aws:cloudformation:${AWS_REGION}:$(aws sts get-caller-identity | jq -r '.Account'):stack/MockStack/$(uuid)\",
+      \"RequestId\": \"$(uuid)\",
+      \"ResourceType\": \"Custom::MockResource\",
+      \"LogicalResourceId\": \"MockResource\",
+      \"ResourceProperties\": {
+          \"AgentType\": \"client\",
+          \"AgentService\": \"ssm\",
+          \"AgentCreateMethod\": \"put_parameter\",
+          \"AgentUpdateMethod\": \"put_parameter\",
+          \"AgentDeleteMethod\": \"delete_parameter\",
+          \"AgentResourceId\": \"Name\",
+          \"AgentCreateArgs\": {
+              \"Name\": \"/foo/bar\",
+              \"Value\": \"foo-bar\",
+              \"Type\": \"SecureString\",
+              \"Overwrite\": false
+          },
+          \"AgentUpdateArgs\": {
+              \"Name\": \"/foo/bar\",
+              \"Value\": \"foo-bar\",
+              \"Type\": \"SecureString\",
+              \"Overwrite\": true
+          },
+          \"AgentDeleteArgs\": {
+              \"Name\": \"/foo/bar\"
           }
       }
     }" | jq -c | ./generic_provider.py
