@@ -6,11 +6,15 @@ from boto3 import client
 from unittest import TestCase
 from mock import patch
 from uuid import uuid4
+from random import randint
 from generic_provider import Provider
 
 
 region = os.getenv('AWS_REGION', 'us-east-1')
-account_id = client('sts').get_caller_identity()['Account']
+try:
+    account_id = client('sts').get_caller_identity()['Account']
+except:
+    account_id = randint(123456789000, 123456789099)
 
 
 class TestEvent:
