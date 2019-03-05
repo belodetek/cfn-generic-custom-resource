@@ -6,5 +6,5 @@ install:
   - pip install -r generic_provider/requirements.txt
 script:
   - pushd generic_provider
-  - python -m unittests
+  - python -m unittest
   - popd
