@@ -14,10 +14,19 @@ from traceback import print_exc
 from retrying import retry
 
 
-default_wait = 5    # seconds
+default_wait = 5                # seconds
 verbose = bool(int(os.getenv('VERBOSE', 0)))
-region = os.getenv('AWS_REGION')
 profile = os.getenv('AWS_PROFILE')
+
+try:
+    region = os.getenv('AWS_DEFAULT_REGION')
+    assert region
+except:
+    try:
+        region = os.getenv('AWS_REGION')
+        assert region
+    except:
+        region = 'us-east-1'
 
 session = boto3.session.Session()
 boto3.setup_default_session()
