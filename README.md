@@ -337,7 +337,151 @@ aws s3api put-bucket-policy\
 
 
 ## mock client requests
-> 🐞 useful to debug resource creation locally
+> 🐞 useful to debug resource creation of AWS resources from a local workstation
+
+### Backup
+> [Backup](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/backup.html) API reference
+
+#### create-backup-vault
+> mock CloudFormation request to [create](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/backup.html#Backup.Client.create_backup_vault) a backup vault
+
+    pushd generic_provider
+    echo "{
+      \"RequestType\": \"Create\",
+      \"ResponseURL\": \"https://cloudformation-custom-resource-response-${AWS_REGION}.s3.amazonaws.com/\",
+      \"StackId\": \"arn:aws:cloudformation:${AWS_REGION}:$(aws sts get-caller-identity | jq -r '.Account'):stack/MockStack/$(uuid)\",
+      \"RequestId\": \"$(uuid)\",
+      \"ResourceType\": \"Custom::MockResource\",
+      \"LogicalResourceId\": \"MockResource\",
+      \"PhysicalResourceId\": \"$(uuid)\",
+      \"ResourceProperties\": {
+          \"AgentType\": \"client\",
+          \"AgentService\": \"backup\",
+          \"AgentCreateMethod\": \"create_backup_vault\",
+          \"AgentDeleteMethod\": \"delete_backup_vault\",
+          \"AgentCreateArgs\": {
+              \"BackupVaultName\": \"foo-bar\",
+              \"EncryptionKeyArn\": \"arn:aws:kms:${AWS_REGION}:$(aws sts get-caller-identity | jq -r '.Account'):key/$(uuid)\",
+              \"BackupVaultTags\": {
+                \"Name\": \"foo-bar\"
+              }
+          },
+          \"AgentDeleteArgs\": {
+              \"BackupVaultName\": \"foo-bar\"
+          }
+      }
+    }" | jq -c | VERBOSE=1 ./generic_provider.py
+    popd
+
+
+#### create-backup-plan
+> mock CloudFormation request to [create](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/backup.html#Backup.Client.create_backup_plan) a backup plan
+
+    pushd generic_provider
+    echo "{
+      \"RequestType\": \"Create\",
+      \"ResponseURL\": \"https://cloudformation-custom-resource-response-${AWS_REGION}.s3.amazonaws.com/\",
+      \"StackId\": \"arn:aws:cloudformation:${AWS_REGION}:$(aws sts get-caller-identity | jq -r '.Account'):stack/MockStack/$(uuid)\",
+      \"RequestId\": \"$(uuid)\",
+      \"ResourceType\": \"Custom::MockResource\",
+      \"LogicalResourceId\": \"MockResource\",
+      \"ResourceProperties\": {
+          \"AgentType\": \"client\",
+          \"AgentService\": \"backup\",
+          \"AgentCreateMethod\": \"create_backup_plan\",
+          \"AgentUpdateMethod\": \"update_backup_plan\",
+          \"AgentDeleteMethod\": \"delete_backup_plan\",
+          \"AgentResourceId\": \"BackupPlanId\",
+          \"AgentWaitQueryExpr\": \"$.BackupPlanId\",
+          \"AgentCreateArgs\": {
+            \"BackupPlan\": {
+              \"BackupPlanName\": \"foo-bar\",
+              \"Rules\": [
+                {
+                  \"RuleName\": \"foo-bar\",
+                  \"TargetBackupVaultName\": \"Default\",
+                  \"ScheduleExpression\": \"cron(0 2 * * ? *)\",
+                  \"StartWindowMinutes\": 60,
+                  \"CompletionWindowMinutes\": 180,
+                  \"Lifecycle\": {
+                    \"MoveToColdStorageAfterDays\": 30,
+                    \"DeleteAfterDays\": 365
+                  }
+                }
+              ]
+            },
+            \"BackupPlanTags\": {
+              \"Name\": \"foo-bar\"
+            }
+          },
+          \"AgentUpdateArgs\": {
+            \"BackupPlan\": {
+              \"BackupPlanName\": \"foo-bar\",
+              \"Rules\": [
+                {
+                  \"RuleName\": \"foo-bar\",
+                  \"TargetBackupVaultName\": \"Default\",
+                  \"ScheduleExpression\": \"cron(0 2 * * ? *)\",
+                  \"StartWindowMinutes\": 60,
+                  \"CompletionWindowMinutes\": 180,
+                  \"Lifecycle\": {
+                    \"MoveToColdStorageAfterDays\": 30,
+                    \"DeleteAfterDays\": 365
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    }" | jq -c | VERBOSE=1 ./generic_provider.py
+    popd
+
+
+#### create-backup-selection
+> mock CloudFormation request to [create](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/backup.html#Backup.Client.create_backup_selection) a backup slection
+
+    pushd generic_provider
+    echo "{
+      \"RequestType\": \"Create\",
+      \"ResponseURL\": \"https://cloudformation-custom-resource-response-${AWS_REGION}.s3.amazonaws.com/\",
+      \"StackId\": \"arn:aws:cloudformation:${AWS_REGION}:$(aws sts get-caller-identity | jq -r '.Account'):stack/MockStack/$(uuid)\",
+      \"RequestId\": \"$(uuid)\",
+      \"ResourceType\": \"Custom::MockResource\",
+      \"LogicalResourceId\": \"MockResource\",
+      \"ResourceProperties\": {
+          \"AgentType\": \"client\",
+          \"AgentService\": \"backup\",
+          \"AgentCreateMethod\": \"create_backup_selection\",
+          \"AgentDeleteMethod\": \"delete_backup_selection\",
+          \"AgentResourceId\": \"SelectionId\",
+          \"AgentWaitQueryExpr\": \"$.SelectionId\",
+          \"AgentCreateArgs\": {
+            \"BackupPlanId\": \"$(uuid)\",
+            \"BackupSelection\": {
+              \"SelectionName\": \"foo-bar\",
+              \"IamRoleArn\": \"arn:aws:iam::$(aws sts get-caller-identity | jq -r '.Account'):role/service-role/AWSBackupDefaultServiceRole\",
+              \"Resources\": [
+                \"arn:aws:elasticfilesystem:${AWS_REGION}:$(aws sts get-caller-identity | jq -r '.Account'):file-system/fs-abcde1234\"
+              ],
+              \"ListOfTags\": [
+                {
+                  \"ConditionType\": \"STRINGEQUALS\",
+                  \"ConditionKey\": \"AccountId\",
+                  \"ConditionValue\": \"$(aws sts get-caller-identity | jq -r '.Account')\"
+                }
+              ]
+            }
+          },
+          \"AgentDeleteArgs\": {
+            \"BackupPlanId\": \"$(uuid)\"
+          }
+        }
+      }
+    }" | jq -c | VERBOSE=1 ./generic_provider.py
+    popd
+
+
 
 ### Directory Services
 > [Directory Services](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ds.html) API reference
@@ -394,6 +538,7 @@ aws s3api put-bucket-policy\
     && popd
 
 
+
 ### IAM
 > [IAM](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/iam.html) API reference
 
@@ -427,6 +572,7 @@ aws s3api put-bucket-policy\
     popd
 
 
+
 ### KMS
 > [KMS](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/kms.html) API reference
 
@@ -452,6 +598,7 @@ aws s3api put-bucket-policy\
       }
     }" | jq -c | ./generic_provider.py
     popd
+
 
 
 ### Relational Database Service
@@ -583,6 +730,7 @@ aws s3api put-bucket-policy\
     popd
 
 
+
 ### Database Migration Service
 > [DMS](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/dms.html) API reference
 
@@ -657,6 +805,7 @@ aws s3api put-bucket-policy\
       }
     }" | jq -c | ./generic_provider.py
     popd
+
 
 
 ### EC2
