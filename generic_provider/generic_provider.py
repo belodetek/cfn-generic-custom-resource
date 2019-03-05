@@ -27,6 +27,10 @@ if profile:
     boto3.setup_default_session(profile_name=profile)
 
 
+def get_response(agent_attr, **agent_kwargs):
+    return agent_attr(**agent_kwargs)
+
+
 def wait_event(agent, event, create=False, update=False, delete=False):
     resource_key = 'ResourceProperties'
     try:
@@ -138,12 +142,12 @@ def wait_event(agent, event, create=False, update=False, delete=False):
         while True:
             if agent_exceptions:
                 try:
-                    response = agent_attr(**agent_kwargs)
+                    response = get_response(agent_attr, **agent_kwargs)
                 except tuple(agent_exceptions) as e:
                     print('passing exception={}'.format(repr(e)))
                     if verbose: print_exc()
             else:
-                response = agent_attr(**agent_kwargs)
+                response = get_response(agent_attr, **agent_kwargs)
             
             match = jsonpath(response, agent_query_expr)
             if no_echo == 'false':
@@ -228,12 +232,12 @@ def handle_client_event(agent, event, create=False, update=False, delete=False):
             ))
         if agent_exceptions:
             try:
-                response = agent_attr(**agent_kwargs)
+                response = get_response(agent_attr, **agent_kwargs)
             except tuple(agent_exceptions) as e:
                 print('passing exception={}'.format(repr(e)))
                 if verbose: print_exc()
         else:
-            response = agent_attr(**agent_kwargs)
+            response = get_response(agent_attr, **agent_kwargs)
         if no_echo == 'false':
             print('response={} create={} update={} delete={}'.format(
                 response,
