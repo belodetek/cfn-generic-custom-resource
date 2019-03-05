@@ -265,7 +265,7 @@ def handle_client_event(agent, event, create=False, update=False, delete=False):
             except:
                 if verbose: print_exc()
                 try:
-                    PhysicalResourceId = event[resource_key][args_key][agent_resource_id]
+                    PhysicalResourceId = agent_kwargs[agent_resource_id]
                     assert PhysicalResourceId, 'PhysicalResourceId from event[resource_key][args_key][agent_resource_id]'
                 except:
                     if verbose: print_exc()
