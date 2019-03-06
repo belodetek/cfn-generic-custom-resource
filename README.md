@@ -63,7 +63,7 @@
     domain_name='foo.bar'
 
 
-    pushd easy-rsa/easyrsa3
+    pushd _easy-rsa/easyrsa3
 
     ./easyrsa init-pki
 
@@ -75,14 +75,14 @@
     popd
 
     server_certificate=$(aws acm import-certificate\
-      --certificate file://easy-rsa/easyrsa3/pki/issued/server.${domain_name}.crt\
-      --private-key file://easy-rsa/easyrsa3/pki/private/server.${domain_name}.key\
-      --certificate-chain file://easy-rsa/easyrsa3/pki/ca.crt | jq -r '.CertificateArn')
+      --certificate file://_easy-rsa/easyrsa3/pki/issued/server.${domain_name}.crt\
+      --private-key file://_easy-rsa/easyrsa3/pki/private/server.${domain_name}.key\
+      --certificate-chain file://_easy-rsa/easyrsa3/pki/ca.crt | jq -r '.CertificateArn')
 
     client_certificate=$(aws acm import-certificate\
-      --certificate file://easy-rsa/easyrsa3/pki/issued/client1.${domain_name}.crt\
-      --private-key file://easy-rsa/easyrsa3/pki/private/client1.${domain_name}.key\
-      --certificate-chain file://easy-rsa/easyrsa3/pki/ca.crt | jq -r '.CertificateArn')
+      --certificate file://_easy-rsa/easyrsa3/pki/issued/client1.${domain_name}.crt\
+      --private-key file://_easy-rsa/easyrsa3/pki/private/client1.${domain_name}.key\
+      --certificate-chain file://_easy-rsa/easyrsa3/pki/ca.crt | jq -r '.CertificateArn')
 
 
 #### package assets

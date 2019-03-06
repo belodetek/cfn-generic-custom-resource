@@ -1,8 +1,1 @@
 theme: jekyll-theme-slate
-exclude:
-- easy-rsa
-- easy-rsa/
-- easy-rsa/*
-- easy-rsa/**
-- easy-rsa*
-- easy-rsa**
