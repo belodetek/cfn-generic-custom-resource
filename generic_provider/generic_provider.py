@@ -14,7 +14,7 @@ from traceback import print_exc
 from retrying import retry
 
 
-default_wait = 5                # seconds
+default_wait = 5    # (seconds)
 verbose = bool(int(os.getenv('VERBOSE', 0)))
 profile = os.getenv('AWS_PROFILE')
 
