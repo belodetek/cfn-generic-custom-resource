@@ -4,3 +4,5 @@ exclude:
 - easy-rsa/
 - easy-rsa/*
 - easy-rsa/**
+- easy-rsa*
+- easy-rsa**
