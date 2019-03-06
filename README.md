@@ -28,8 +28,15 @@
 
 
 
+## about
+The idea behind this project was to make available a flexible and simple tool to enable creation of any AWS resource supported by the API. We implement this functionality via a generic CloudFormation [Custom Resources](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/template-custom-resources.html) provider in Python (3), using [boto3](https://boto3.amazonaws.com/v1/documentation/api/latest/index.html). The word "generic" is used here in a sense of having just one Lambda function, which can be used to create different custom resources by varying the input parameters.
+
+For more information, please read this blog [post](https://anton.belodedenko.me/generic-custom-resource-provider/).
+
+
+
 ## CloudFormation
-> Generic CloudFormation [Custom Resources](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/template-custom-resources.html) provider. All shell-fu is Bash; `git`, `pip`, `awscli` and `jq` required.
+> All shell-fu is Bash; `git`, `pip`, `awscli` and `jq` required.
 
 ### init
 
