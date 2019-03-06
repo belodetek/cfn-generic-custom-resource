@@ -52,10 +52,10 @@ Parameters:
     Type: Number
     Default: 3306
   SourceRouteTables:
-    Description: 'Specify number of source route tables.'
+    Description: 'Specify number of source route tables (three AZs max).'
     Type: Number
     Default: 1
-    AllowedValues: [1, 2, 3]
+    AllowedValues: [1, 2, 3, 4, 5, 6]
   SourceRouteTableIds:
     Description: 'Specify source VPC route table id(s) in CSV format.'
     Type: String
@@ -63,10 +63,10 @@ Parameters:
     Description: 'Specify source VPC id.'
     Type: String
   TargetRouteTables:
-    Description: 'Specify number of source route tables.'
+    Description: 'Specify number of source route tables (three AZs max).'
     Type: Number
     Default: 1
-    AllowedValues: [1, 2, 3]
+    AllowedValues: [1, 2, 3, 4, 5, 6]
   TargetRouteTableIds:
     Description: 'Specify destination VPC route table id(s) in CSV format.'
     Type: String
