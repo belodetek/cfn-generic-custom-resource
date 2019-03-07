@@ -33,18 +33,6 @@ class TestProvider(TestCase):
         str(uuid4())
     )
 
-    response_meta = {
-        'RequestId': str(uuid4()),
-        'HTTPStatusCode': 200,
-        'HTTPHeaders': {
-            'x-amzn-requestid': str(uuid4()),
-            'content-type': 'application/x-amz-json-1.1',
-            'content-length': str(randint(1, 100)),
-            'date': 'Tue, 05 Mar 2019 15:47:45 GMT'
-        },
-        'RetryAttempts': 0
-    }
-
     test_events = [
         # boto3.client('ssm').put_parameter
         TestEvent(
@@ -60,29 +48,18 @@ class TestProvider(TestCase):
                     'AgentType': 'client',
                     'AgentService': 'ssm',
                     'AgentCreateMethod': 'put_parameter',
-                    'AgentUpdateMethod': 'put_parameter',
-                    'AgentDeleteMethod': 'delete_parameter',
                     'AgentResourceId': 'Name',
                     'AgentCreateArgs': {
                         'Name': '/foo/bar',
                         'Value': 'foo-bar',
                         'Type': 'SecureString',
                         'Overwrite': False
-                    },
-                    'AgentUpdateArgs': {
-                        'Name': '/foo/bar',
-                        'Value': 'foo-bar',
-                        'Type': 'SecureString',
-                        'Overwrite': True
-                    },
-                    'AgentDeleteArgs': {
-                        'Name': '/foo/bar'
                     }
                 }
             },
             {
                 'Version': 1,
-                'ResponseMetadata': response_meta
+                'ResponseMetadata': {}
             }
         ),
         # boto3.client('ssm').delete_parameter
@@ -99,29 +76,15 @@ class TestProvider(TestCase):
                 'ResourceProperties': {
                     'AgentType': 'client',
                     'AgentService': 'ssm',
-                    'AgentCreateMethod': 'put_parameter',
-                    'AgentUpdateMethod': 'put_parameter',
                     'AgentDeleteMethod': 'delete_parameter',
                     'AgentResourceId': 'Name',
-                    'AgentCreateArgs': {
-                        'Name': '/foo/bar',
-                        'Value': 'foo-bar',
-                        'Type': 'SecureString',
-                        'Overwrite': False
-                    },
-                    'AgentUpdateArgs': {
-                        'Name': '/foo/bar',
-                        'Value': 'foo-bar',
-                        'Type': 'SecureString',
-                        'Overwrite': True
-                    },
                     'AgentDeleteArgs': {
                         'Name': '/foo/bar'
                     }
                 }
             },
             {
-                'ResponseMetadata': response_meta
+                'ResponseMetadata': {}
             }
         ),
         # boto3.resource('ec2').Instance('i-abcedf1234567890')
@@ -146,16 +109,11 @@ class TestProvider(TestCase):
                     }
                 }
             },
-            [
-                {
-                    'Ipv6Addresses': [
-                        {
-                            'Ipv6Address': 'fdd7:874:8e55:4500:ffff:ffff:ffff:ffff'
-                        }
-                    ]
-    
-                }
-            ]
+            [{
+                'Ipv6Addresses': [{
+                    'Ipv6Address': 'fdd7:874:8e55:4500:ffff:ffff:ffff:ffff'
+                }]
+            }]
         )
     ]
 
