@@ -14,29 +14,29 @@ from traceback import print_exc
 from retrying import retry
 
 
-default_wait = 5    # (seconds)
-verbose = bool(int(os.getenv('VERBOSE', 0)))
-profile = os.getenv('AWS_PROFILE')
-
-try:
-    region = os.getenv('AWS_DEFAULT_REGION')
-    assert region
-except:
-    try:
-        region = os.getenv('AWS_REGION')
-        assert region
-    except:
-        region = 'us-east-1'
-
-session = boto3.session.Session()
-boto3.setup_default_session()
-if profile:
-    print('profile={} region={}'.format(profile, region))
-    session = boto3.session.Session(profile_name=profile)
-    boto3.setup_default_session(profile_name=profile)
-
-
 class Provider:
+    def __init__(self):
+        self.default_wait_secs = 5
+        self.verbose = bool(int(os.getenv('VERBOSE', 0)))
+        self.profile = os.getenv('AWS_PROFILE')
+
+        try:
+            self.region = os.getenv('AWS_DEFAULT_REGION')
+            assert self.region
+        except:
+            try:
+                self.region = os.getenv('AWS_REGION')
+                assert self.region
+            except:
+                self.region = 'us-east-1'
+
+        self.session = boto3.session.Session()
+        boto3.setup_default_session()
+        if self.profile:
+            print('profile={} region={}'.format(self.profile, self.region))
+            self.session = boto3.session.Session(profile_name=self.profile)
+            boto3.setup_default_session(profile_name=self.profile)
+           
 
     def get_response(self, agent_attr, **agent_kwargs):
         return agent_attr(**agent_kwargs)
@@ -122,12 +122,12 @@ class Provider:
             waiter = getattr(agent, 'get_waiter')(agent_method)
             agent_attr = None
         except:
-            if verbose: print_exc()
+            if self.verbose: print_exc()
             waiter = None
             try:
                 agent_attr = getattr(agent, agent_method)
             except:
-                if verbose: print_exc()
+                if self.verbose: print_exc()
                 agent_attr = None
 
         if no_echo == 'false':
@@ -141,7 +141,7 @@ class Provider:
                     waiter.wait(**agent_kwargs)
                 except tuple(agent_exceptions) as e:
                     print('passing exception={}'.format(repr(e)))
-                    if verbose: print_exc()
+                    if self.verbose: print_exc()
             else:
                 waiter.wait(**agent_kwargs)
                 return
@@ -156,7 +156,7 @@ class Provider:
                         response = self.get_response(agent_attr, **agent_kwargs)
                     except tuple(agent_exceptions) as e:
                         print('passing exception={}'.format(repr(e)))
-                        if verbose: print_exc()
+                        if self.verbose: print_exc()
                 else:
                     response = self.get_response(agent_attr, **agent_kwargs)
                 
@@ -171,7 +171,7 @@ class Provider:
                         delete
                     ))
                 if match is not None and response and (match == agent_query_value or not match): break
-                sleep(default_wait)
+                sleep(self.default_wait_secs)
 
 
     @retry(wait_exponential_multiplier=1000, wait_exponential_max=10000, stop_max_delay=30000)
@@ -224,7 +224,7 @@ class Provider:
             for ex in event[resource_key][exceptions_key]:
                 agent_exceptions.append(eval(ex))
         except:
-            if verbose: print_exc()
+            if self.verbose: print_exc()
             agent_exceptions = None
         try:
             agent_method = event[resource_key][method_key]
@@ -233,7 +233,7 @@ class Provider:
         try:
             agent_attr = getattr(agent, agent_method)
         except:
-            if verbose: print_exc()
+            if self.verbose: print_exc()
             agent_attr = None
         if agent_attr:
             response = {}
@@ -246,7 +246,7 @@ class Provider:
                     response = self.get_response(agent_attr, **agent_kwargs)
                 except tuple(agent_exceptions) as e:
                     print('passing exception={}'.format(repr(e)))
-                    if verbose: print_exc()
+                    if self.verbose: print_exc()
             else:
                 response = self.get_response(agent_attr, **agent_kwargs)
             if no_echo == 'false':
@@ -261,29 +261,29 @@ class Provider:
                 responseData = response[agent_response_node]
                 assert responseData, 'responseData from response[agent_response_node]'
             except:
-                if verbose: print_exc()
+                if self.verbose: print_exc()
                 try:
                     responseData = response
                     assert responseData
                 except:
-                    if verbose: print_exc()
+                    if self.verbose: print_exc()
                     responseData = {}
             try:
                 PhysicalResourceId = responseData[agent_resource_id]
                 assert PhysicalResourceId, 'PhysicalResourceId from responseData[agent_resource_id]'
             except:
-                if verbose: print_exc()
+                if self.verbose: print_exc()
                 try:
                     PhysicalResourceId = jsonpath(responseData, agent_query_expr)
                     assert PhysicalResourceId, 'PhysicalResourceId from jsonpath(response, agent_query_expr)'
                     PhysicalResourceId = ','.join(PhysicalResourceId)
                 except:
-                    if verbose: print_exc()
+                    if self.verbose: print_exc()
                     try:
                         PhysicalResourceId = agent_kwargs[agent_resource_id]
                         assert PhysicalResourceId, 'PhysicalResourceId from event[resource_key][args_key][agent_resource_id]'
                     except:
-                        if verbose: print_exc()
+                        if self.verbose: print_exc()
                         PhysicalResourceId = str(uuid4())
             if create:
                 if no_echo == 'false':
@@ -332,7 +332,7 @@ class Provider:
         try:
             agent_attr = getattr(agent, agent_kwargs['ResourceName'])
         except:
-            if verbose: print_exc()
+            if self.verbose: print_exc()
             agent_attr = None
 
         if no_echo == 'false':
@@ -376,11 +376,11 @@ class Provider:
         try:
             kwargs['region_name'] = event['ResourceProperties']['AgentRegion']
         except:
-            kwargs['region_name'] = region
+            kwargs['region_name'] = self.region
 
         try:
             RoleArn = event['ResourceProperties']['RoleArn']
-            client = boto3.client('sts', region_name=region)
+            client = boto3.client('sts', region_name=self.region)
             response = client.assume_role(
                 RoleArn=RoleArn,
                 RoleSessionName=str(uuid4())
@@ -393,7 +393,7 @@ class Provider:
                 client.get_caller_identity()
             ))
         except:
-            if not profile:
+            if not self.profile:
                 kwargs['aws_access_key_id'] = os.getenv('AWS_ACCESS_KEY_ID')
                 kwargs['aws_secret_access_key'] = os.getenv('AWS_SECRET_ACCESS_KEY')
                 kwargs['aws_session_token'] = os.getenv('AWS_SESSION_TOKEN')
@@ -416,10 +416,10 @@ class Provider:
             LogicalResourceId = event['LogicalResourceId']
             CreateFailedResourceId = '{}-CREATE_FAILED'.format(LogicalResourceId)
             if agent_type == 'client':
-                agent = session.client(agent_service, **kwargs)
+                agent = self.session.client(agent_service, **kwargs)
             if agent_type == 'resource':
                 try:
-                    agent = session.resource(agent_service, **kwargs)
+                    agent = self.session.resource(agent_service, **kwargs)
                     (physicalResourceId, responseData) = self.handle_resource_event(
                         agent,
                         event
@@ -435,7 +435,7 @@ class Provider:
                     )
                     return True
                 except Exception as e:
-                    if verbose: print_exc()
+                    if self.verbose: print_exc()
                     cfnresponse.send(
                         event,
                         context,
@@ -445,7 +445,7 @@ class Provider:
                     )
                 return False
         except Exception as e:
-            if verbose: print_exc()
+            if self.verbose: print_exc()
             cfnresponse.send(
                 event,
                 context,
@@ -477,7 +477,7 @@ class Provider:
                     )
                     return True
             except Exception as e:
-                if verbose: print_exc()
+                if self.verbose: print_exc()
                 cfnresponse.send(
                     event,
                     context,
@@ -513,7 +513,7 @@ class Provider:
                     return True
                 event['ResourceProperties'].pop('AgentResourceId', None)
             except Exception as e:
-                if verbose: print_exc()
+                if self.verbose: print_exc()
                 cfnresponse.send(
                     event,
                     context,
@@ -542,7 +542,7 @@ class Provider:
             )
             return True
         except Exception as e:
-            if verbose: print_exc()
+            if self.verbose: print_exc()
             cfnresponse.send(
                 event,
                 context,
