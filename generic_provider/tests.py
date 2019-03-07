@@ -18,116 +18,144 @@ except:
 
 
 class TestEvent:
-    def __init__(self, request, response):
+    def __init__(self, typ, request, response):
+        self.typ = typ
         self.request = request
         self.response = response
 
 
 class TestProvider(TestCase):
+    response_url = 'https://cloudformation-custom-resource-response-{}.s3.amazonaws.com/'.format(region)
+
+    stack_id = 'arn:aws:cloudformation:{}:{}:stack/MockStack/{}'.format(
+        region,
+        account_id,
+        str(uuid4())
+    )
+
+    response_meta = {
+        'RequestId': str(uuid4()),
+        'HTTPStatusCode': 200,
+        'HTTPHeaders': {
+            'x-amzn-requestid': str(uuid4()),
+            'content-type': 'application/x-amz-json-1.1',
+            'content-length': str(randint(1, 100)),
+            'date': 'Tue, 05 Mar 2019 15:47:45 GMT'
+        },
+        'RetryAttempts': 0
+    }
 
     test_events = [
         # boto3.client('ssm').put_parameter
         TestEvent(
+            'client',
             {
                 'RequestType': 'Create',
-                'ResponseURL': 'https://cloudformation-custom-resource-response-{}.s3.amazonaws.com/'.format(region),
-                'StackId': 'arn:aws:cloudformation:{}:{}:stack/MockStack/{}'.format(
-                    region,
-                    account_id,
-                    str(uuid4())
-                ),
+                'ResponseURL': response_url,
+                'StackId': stack_id,
                 'RequestId': str(uuid4()),
                 'ResourceType': 'Custom::MockResource',
-                  'LogicalResourceId': 'MockResource',
-                  'ResourceProperties': {
-                      'AgentType': 'client',
-                      'AgentService': 'ssm',
-                      'AgentCreateMethod': 'put_parameter',
-                      'AgentUpdateMethod': 'put_parameter',
-                      'AgentDeleteMethod': 'delete_parameter',
-                      'AgentResourceId': 'Name',
-                      'AgentCreateArgs': {
-                          'Name': '/foo/bar',
-                          'Value': 'foo-bar',
-                          'Type': 'SecureString',
-                          'Overwrite': False
-                      },
-                      'AgentUpdateArgs': {
-                          'Name': '/foo/bar',
-                          'Value': 'foo-bar',
-                          'Type': 'SecureString',
-                          'Overwrite': True
-                      },
-                      'AgentDeleteArgs': {
-                          'Name': '/foo/bar'
-                      }
-                  }
+                'LogicalResourceId': 'MockResource',
+                'ResourceProperties': {
+                    'AgentType': 'client',
+                    'AgentService': 'ssm',
+                    'AgentCreateMethod': 'put_parameter',
+                    'AgentUpdateMethod': 'put_parameter',
+                    'AgentDeleteMethod': 'delete_parameter',
+                    'AgentResourceId': 'Name',
+                    'AgentCreateArgs': {
+                        'Name': '/foo/bar',
+                        'Value': 'foo-bar',
+                        'Type': 'SecureString',
+                        'Overwrite': False
+                    },
+                    'AgentUpdateArgs': {
+                        'Name': '/foo/bar',
+                        'Value': 'foo-bar',
+                        'Type': 'SecureString',
+                        'Overwrite': True
+                    },
+                    'AgentDeleteArgs': {
+                        'Name': '/foo/bar'
+                    }
+                }
             },
             {
                 'Version': 1,
-                'ResponseMetadata': {
-                    'RequestId': str(uuid4()),
-                    'HTTPStatusCode': 200,
-                    'HTTPHeaders': {
-                        'x-amzn-requestid': str(uuid4()),
-                        'content-type': 'application/x-amz-json-1.1',
-                        'content-length': '13',
-                        'date': 'Tue, 05 Mar 2019 15:47:45 GMT'
-                    },
-                    'RetryAttempts': 0
-                }
+                'ResponseMetadata': response_meta
             }
         ),
         # boto3.client('ssm').delete_parameter
         TestEvent(
+            'client',
             {
                 'RequestType': 'Delete',
-                'ResponseURL': 'https://cloudformation-custom-resource-response-{}.s3.amazonaws.com/'.format(region),
-                'StackId': 'arn:aws:cloudformation:{}:{}:stack/MockStack/{}'.format(
-                    region,
-                    account_id,
-                    str(uuid4())
-                ),
+                'ResponseURL': response_url,
+                'StackId': stack_id,
                 'RequestId': str(uuid4()),
                 'ResourceType': 'Custom::MockResource',
-                  'LogicalResourceId': 'MockResource',
-                  'PhysicalResourceId': '/foo/bar',
-                  'ResourceProperties': {
-                      'AgentType': 'client',
-                      'AgentService': 'ssm',
-                      'AgentCreateMethod': 'put_parameter',
-                      'AgentUpdateMethod': 'put_parameter',
-                      'AgentDeleteMethod': 'delete_parameter',
-                      'AgentResourceId': 'Name',
-                      'AgentCreateArgs': {
-                          'Name': '/foo/bar',
-                          'Value': 'foo-bar',
-                          'Type': 'SecureString',
-                          'Overwrite': False
-                      },
-                      'AgentUpdateArgs': {
-                          'Name': '/foo/bar',
-                          'Value': 'foo-bar',
-                          'Type': 'SecureString',
-                          'Overwrite': True
-                      },
-                      'AgentDeleteArgs': {
-                          'Name': '/foo/bar'
-                      }
-                  }
+                'LogicalResourceId': 'MockResource',
+                'PhysicalResourceId': '/foo/bar',
+                'ResourceProperties': {
+                    'AgentType': 'client',
+                    'AgentService': 'ssm',
+                    'AgentCreateMethod': 'put_parameter',
+                    'AgentUpdateMethod': 'put_parameter',
+                    'AgentDeleteMethod': 'delete_parameter',
+                    'AgentResourceId': 'Name',
+                    'AgentCreateArgs': {
+                        'Name': '/foo/bar',
+                        'Value': 'foo-bar',
+                        'Type': 'SecureString',
+                        'Overwrite': False
+                    },
+                    'AgentUpdateArgs': {
+                        'Name': '/foo/bar',
+                        'Value': 'foo-bar',
+                        'Type': 'SecureString',
+                        'Overwrite': True
+                    },
+                    'AgentDeleteArgs': {
+                        'Name': '/foo/bar'
+                    }
+                }
             },
             {
-                'ResponseMetadata': {
-                    'RequestId': str(uuid4()),
-                    'HTTPStatusCode': 200,
-                    'HTTPHeaders': {
-                        'x-amzn-requestid': str(uuid4()),
-                        'content-type': 'application/x-amz-json-1.1',
-                        'content-length': '2', 'date': 'Tue, 05 Mar 2019 17:34:25 GMT'
-                    },
-                    'RetryAttempts': 0
-                }
+                'ResponseMetadata': response_meta
             }
+        ),
+        # boto3.resource('ec2').Instance('i-abcedf1234567890')
+        TestEvent(
+            'resource',
+            {
+                'RequestType': 'Create',
+                'ResponseURL': response_url,
+                'StackId': stack_id,
+                'RequestId': str(uuid4()),
+                'ResourceType': 'Custom::MockResource',
+                'LogicalResourceId': 'MockResource',
+                'ResourceProperties': {
+                    'AgentService': 'ec2',
+                    'AgentType': 'resource',
+                    'AgentWaitQueryExpr': '$..Ipv6Address',
+                    'AgentResourceId': 'Ipv6Address',
+                    'AgentCreateMethod': 'network_interfaces_attribute',
+                    'AgentCreateArgs': {
+                        'ResourceName': 'Instance',
+                        'ResourceId': 'i-abcedf1234567890'
+                    }
+                }
+            },
+            [
+                {
+                    'Ipv6Addresses': [
+                        {
+                            'Ipv6Address': 'fdd7:874:8e55:4500:ffff:ffff:ffff:ffff'
+                        }
+                    ]
+    
+                }
+            ]
         )
     ]
 
@@ -135,6 +163,12 @@ class TestProvider(TestCase):
     def test_provider(self):
         provider = Provider()
         for test_event in self.test_events:
-            with patch.object(Provider, 'get_response', wraps=provider.get_response) as mock:
-                provider.get_response.return_value = test_event.response
-                self.assertTrue(provider.handle_event(event=test_event.request))
+            if test_event.typ == 'client':
+                with patch.object(Provider, 'get_response', wraps=provider.get_response) as mock:
+                    provider.get_response.return_value = test_event.response
+                    self.assertTrue(provider.handle_event(event=test_event.request))
+
+            if test_event.typ == 'resource':
+                with patch.object(Provider, 'get_resource', wraps=provider.get_resource) as mock:
+                    provider.get_resource.return_value = test_event.response
+                    self.assertTrue(provider.handle_event(event=test_event.request))

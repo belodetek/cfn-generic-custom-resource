@@ -39,7 +39,15 @@ class Provider:
            
 
     def get_response(self, agent_attr, **agent_kwargs):
-        return agent_attr(**agent_kwargs)
+        # TBC: better way to differentiate between resources and clients
+        if 'ResourceName' in agent_kwargs and 'ResourceId' in agent_kwargs:
+            return agent_attr(agent_kwargs['ResourceId'])
+        else:
+            return agent_attr(**agent_kwargs)
+
+
+    def get_resource(self, resource, expr):
+        return eval(expr)
 
 
     def wait_event(self, agent, event, create=False, update=False, delete=False):
@@ -340,9 +348,12 @@ class Provider:
                 agent_kwargs, agent_query_expr, agent_attr, agent_resource_id, agent_property
             ))
         assert agent_attr and agent_resource_id and agent_query_expr and agent_property
-        resource = agent_attr(agent_kwargs['ResourceId'])
+        resource = self.get_response(agent_attr, **agent_kwargs)        
         if agent_property in dir(resource):
-            response = eval('resource.{}'.format(agent_property))
+            response = self.get_resource(
+                resource,
+                'resource.{}'.format(agent_property)
+            )
         match = jsonpath(response, agent_query_expr)
         if no_echo == 'false': print('response={} match={}'.format(response, match))
         try:
