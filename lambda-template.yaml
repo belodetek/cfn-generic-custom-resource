@@ -53,6 +53,15 @@ Resources:
               Service: lambda.amazonaws.com
       ManagedPolicyArns:
       - !Sub 'arn:${AWS::Partition}:iam::aws:policy/ReadOnlyAccess'
+      - !Sub 'arn:${AWS::Partition}:iam::aws:policy/AWSBackupAdminPolicy'
+      Policies:
+      - PolicyName: AmazonBackupPolicy
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action: 'iam:PassRole'
+            Resource: !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:role/service-role/AWSBackupDefaultServiceRole'
       Policies:
       - PolicyName: AmazonCloudWatchPolicy
         PolicyDocument:

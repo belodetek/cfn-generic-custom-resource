@@ -10,7 +10,7 @@
 * [Client VPN](#client-vpn-demo)
 * [Cognito IdP](#cognito-demo)
 * [VPC peering](#vpc-peering-demo)
-* [AWS Backup](https://github.com/ab77/cfn-generic-custom-resource/blob/master/aws-backup/backup.yml)
+* [AWS Backup (EFS)](#aws-backup-efs)
 
 
 ### mock requests
@@ -351,6 +351,45 @@ aws s3api put-bucket-policy\
       TargetRouteTableIds=${target_route_table_ids}\
       TargetRouteTables=${target_route_tables}\
       EC2Template=false\
+      --tags\
+      Name=${stack_name}\
+      Region=${AWS_REGION}\
+      Profile=${AWS_PROFILE}\
+      AccountId=$(aws sts get-caller-identity | jq -r '.Account'); popd
+
+
+
+### AWS Backup (EFS)
+> also see mock [examples](#backup) below
+
+#### package assets
+
+    pushd aws-backup; for template in lambda; do
+        aws cloudformation package\
+          --template-file ${template}-template.yaml\
+          --s3-bucket ${bucket}\
+          --output-template-file ${template}.yaml
+    done; popd
+
+
+#### deploy stack
+> additionally, the [resource](https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html) being selected must be tagged with `AccountId`
+
+    stack_name='aws-backup-demo'
+
+    # specify resource ARN and name
+    resource_id="arn:aws:elasticfilesystem:${AWS_REGION}:$(aws sts get-caller-identity | jq -r '.Account'):file-system/fs-abcde1234"
+    resource_name='efs-resource-name'
+
+
+    pushd aws-backup; aws cloudformation deploy\
+      --template-file backup.yaml\
+      --stack-name ${stack_name}\
+      --capabilities CAPABILITY_IAM\
+      --parameter-overrides\
+      NameTag=${stack_name}\
+      ResourceId=${resource_id}\
+      ResourceName=${resource_name}\
       --tags\
       Name=${stack_name}\
       Region=${AWS_REGION}\
