@@ -95,7 +95,7 @@ Resources:
                   "backup:StartRestoreJob",
                   "backup:DeleteRecoveryPoint"
                 ],
-                "Resource": "${BackupVault.BackupVaultName}"
+                "Resource": "${BackupVault.BackupVaultArn}"
               }
             ]
           }
