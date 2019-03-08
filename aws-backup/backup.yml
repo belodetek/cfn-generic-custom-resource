@@ -1,0 +1,282 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Backup resources'
+
+
+Parameters:
+  NameTag:
+    Type: String
+  ScheduleExpression:
+    Type: String
+    Default: 'cron(0 2 * * ? *)'
+  StartWindowMinutes:
+    Type: Number
+    Default: 60
+  CompletionWindowMinutes:
+    Type: Number
+    Default: 180
+  MoveToColdStorageAfterDays:
+    Type: String
+    Default: ''
+  DeleteAfterDays:
+    Type: Number
+    Default: 365
+  # https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html
+  ResourceId:
+    Type: String
+  ResourceName:
+    Type: String
+
+
+Conditions:
+  HasColdStorage: !Not [ !Equals [ '', !Ref 'MoveToColdStorageAfterDays' ]]
+  HasVaultPolicy: !Equals [ 'true', 'false' ]
+
+
+Resources:
+  # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/backup.html#Backup.Client.create_backup_vault
+  BackupVault:
+    Type: 'Custom::BackupVault'
+    Version: 1.0
+    Properties:
+      ServiceToken: !Sub 'arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:generic-custom-resource-provider'
+      AgentService: backup
+      AgentType: client
+      AgentCreateMethod: create_backup_vault
+      AgentDeleteMethod: delete_backup_vault
+      AgentCreateArgs:
+        BackupVaultName: !Sub '${NameTag}-backup-vault'
+        EncryptionKeyArn: !ImportValue 'DefaultKMSKeyArn'
+        BackupVaultTags:
+          Name: !Sub '${NameTag}'
+          StackId: !Sub '${AWS::StackId}'
+          StackName: !Sub '${AWS::StackName}'
+          LogicalResourceId: 'BackupVault'
+          ResourceId: !Sub '${ResourceId}'
+          ResourceName: !Sub '${ResourceName}'
+      AgentDeleteArgs:
+        BackupVaultName: !Sub '${NameTag}-backup-vault'
+
+  # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/backup.html#Backup.Client.put_backup_vault_access_policy
+  BackupVaultPolicy:
+    Type: 'Custom::BackupVaultPolicy'
+    Condition: HasVaultPolicy
+    Version: 1.0
+    Properties:
+      ServiceToken: !Sub 'arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:generic-custom-resource-provider'
+      AgentService: backup
+      AgentType: client
+      AgentCreateMethod: put_backup_vault_access_policy
+      AgentDeleteMethod: delete_backup_vault_access_policy
+      AgentCreateArgs:
+        BackupVaultName: !Sub '${BackupVault.BackupVaultName}'
+        Policy: !Sub |
+          {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Principal": "*",
+                "Action": [
+                  "backup:<specific-permission-not-star>",
+                  "backup:<specific-permission-not-star>",
+                  "backup:<specific-permission-not-star>"
+                ],
+                "Resource": "${BackupVault.BackupVaultName}"
+              }
+            ]
+          }
+      AgentDeleteArgs:
+        BackupVaultName: !Sub '${BackupVault.BackupVaultName}'
+
+  # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/backup.html#Backup.Client.create_backup_plan
+  BackupPlan:
+    Type: 'Custom::BackupPlan'
+    Version: 1.0
+    Properties:
+      ServiceToken: !Sub 'arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:generic-custom-resource-provider'
+      AgentService: backup
+      AgentType: client
+      AgentCreateMethod: create_backup_plan
+      AgentUpdateMethod: update_backup_plan
+      AgentDeleteMethod: delete_backup_plan
+      AgentResourceId: 'BackupPlanId'
+      AgentWaitQueryExpr: '$.BackupPlanId'
+      AgentCreateArgs: !If
+      - HasColdStorage
+      - !Sub |
+        {
+          "BackupPlan": {
+            "BackupPlanName": "${NameTag}-backup-plan",
+            "Rules": [
+              {
+                "RuleName": "${NameTag}-backup-rule",
+                "TargetBackupVaultName": "${BackupVault.BackupVaultName}",
+                "ScheduleExpression": "${ScheduleExpression}",
+                "StartWindowMinutes": ${StartWindowMinutes},
+                "CompletionWindowMinutes": ${CompletionWindowMinutes},
+                "Lifecycle": {
+                  "MoveToColdStorageAfterDays": ${MoveToColdStorageAfterDays},
+                  "DeleteAfterDays": ${DeleteAfterDays}
+                },
+                "RecoveryPointTags": {
+                  "Name": "${NameTag}",
+                  "StackId": "${AWS::StackId}",
+                  "StackName": "${AWS::StackName}",
+                  "ResourceId": "${ResourceId}",
+                  "ResourceName": "${ResourceName}"
+                }
+              }
+            ]
+          },
+          "BackupPlanTags": {
+            "Name": "${NameTag}",
+            "StackId": "${AWS::StackId}",
+            "StackName": "${AWS::StackName}",
+            "LogicalResourceId": "BackupPlan",
+            "ResourceId": "${ResourceId}",
+            "ResourceName": "${ResourceName}"
+          }
+        }
+      - !Sub |
+        {
+          "BackupPlan": {
+            "BackupPlanName": "${NameTag}-backup-plan",
+            "Rules": [
+              {
+                "RuleName": "${NameTag}-backup-rule",
+                "TargetBackupVaultName": "${BackupVault.BackupVaultName}",
+                "ScheduleExpression": "${ScheduleExpression}",
+                "StartWindowMinutes": ${StartWindowMinutes},
+                "CompletionWindowMinutes": ${CompletionWindowMinutes},
+                "Lifecycle": {
+                  "DeleteAfterDays": ${DeleteAfterDays}
+                },
+                "RecoveryPointTags": {
+                  "Name": "${NameTag}",
+                  "StackId": "${AWS::StackId}",
+                  "StackName": "${AWS::StackName}",
+                  "ResourceId": "${ResourceId}",
+                  "ResourceName": "${ResourceName}"
+                }
+              }
+            ]
+          },
+          "BackupPlanTags": {
+            "Name": "${NameTag}",
+            "StackId": "${AWS::StackId}",
+            "StackName": "${AWS::StackName}",
+            "LogicalResourceId": "BackupPlan",
+            "ResourceId": "${ResourceId}",
+            "ResourceName": "${ResourceName}"
+          }
+        }
+      AgentUpdateArgs: !If
+      - HasColdStorage
+      - !Sub |
+        {
+          "BackupPlan": {
+            "BackupPlanName": "${NameTag}-backup-plan",
+            "Rules": [
+              {
+                "RuleName": "${NameTag}-backup-rule",
+                "TargetBackupVaultName": "${BackupVault.BackupVaultName}",
+                "ScheduleExpression": "${ScheduleExpression}",
+                "StartWindowMinutes": ${StartWindowMinutes},
+                "CompletionWindowMinutes": ${CompletionWindowMinutes},
+                "Lifecycle": {
+                  "MoveToColdStorageAfterDays": ${MoveToColdStorageAfterDays},
+                  "DeleteAfterDays": ${DeleteAfterDays}
+                },
+                "RecoveryPointTags": {
+                  "Name": "${NameTag}",
+                  "StackId": "${AWS::StackId}",
+                  "StackName": "${AWS::StackName}",
+                  "ResourceId": "${ResourceId}",
+                  "ResourceName": "${ResourceName}"
+                }
+              }
+            ]
+          }
+        }
+      - !Sub |
+        {
+          "BackupPlan": {
+            "BackupPlanName": "${NameTag}-backup-plan",
+            "Rules": [
+              {
+                "RuleName": "${NameTag}-backup-rule",
+                "TargetBackupVaultName": "${BackupVault.BackupVaultName}",
+                "ScheduleExpression": "${ScheduleExpression}",
+                "StartWindowMinutes": ${StartWindowMinutes},
+                "CompletionWindowMinutes": ${CompletionWindowMinutes},
+                "Lifecycle": {
+                  "DeleteAfterDays": ${DeleteAfterDays}
+                },
+                "RecoveryPointTags": {
+                  "Name": "${NameTag}",
+                  "StackId": "${AWS::StackId}",
+                  "StackName": "${AWS::StackName}",
+                  "ResourceId": "${ResourceId}",
+                  "ResourceName": "${ResourceName}"
+                }
+              }
+            ]
+          }
+        }
+
+  # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/backup.html#Backup.Client.create_backup_selection
+  BackupSelection:
+    Type: 'Custom::BackupSelection'
+    Version: 1.0
+    Properties:
+      ServiceToken: !Sub 'arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:generic-custom-resource-provider'
+      AgentService: backup
+      AgentType: client
+      AgentCreateMethod: create_backup_selection
+      AgentDeleteMethod: delete_backup_selection
+      AgentResourceId: 'SelectionId'
+      AgentWaitQueryExpr: '$.SelectionId'
+      AgentCreateArgs:
+        BackupPlanId: !Sub '${BackupPlan.BackupPlanId}'
+        BackupSelection:
+          SelectionName: !Sub '${NameTag}-backup-selection'
+          IamRoleArn: !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:role/service-role/AWSBackupDefaultServiceRole'
+          Resources:
+          - !Sub '${ResourceId}'
+          ListOfTags:
+          - ConditionType: 'STRINGEQUALS'
+            ConditionKey: 'AccountId'
+            ConditionValue: !Sub '${AWS::AccountId}'
+          - ConditionType: 'STRINGEQUALS'
+            ConditionKey: 'Name'
+            ConditionValue: !Sub '${ResourceName}'
+      AgentDeleteArgs:
+        BackupPlanId: !Sub '${BackupPlan.BackupPlanId}'
+
+
+Outputs:
+  BackupStackName:
+    Value: !Ref 'AWS::StackName'
+    Export:
+      Name: !Sub 'BackupStackName-${AWS::StackName}'
+  BackupVault:
+    Value: !Sub '${BackupVault.BackupVaultName}'
+    Export:
+      Name: !Sub 'BackupVault-${AWS::StackName}'
+  BackupVaultArn:
+    Value: !Sub '${BackupVault.BackupVaultArn}'
+    Export:
+      Name: !Sub 'BackupVaultArn-${AWS::StackName}'
+  BackupPlanId:
+    Value: !Sub '${BackupPlan.BackupPlanId}'
+    Export:
+      Name: !Sub 'BackupPlanId-${AWS::StackName}'
+  BackupPlanArn:
+    Value: !Sub '${BackupPlan.BackupPlanArn}'
+    Export:
+      Name: !Sub 'BackupPlanArn-${AWS::StackName}'
+  BackupSelectionId:
+    Value: !Sub '${BackupSelection.SelectionId}'
+    Export:
+      Name: !Sub 'BackupSelectionId-${AWS::StackName}'
