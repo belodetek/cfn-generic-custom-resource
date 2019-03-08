@@ -26,11 +26,18 @@ Parameters:
     Type: String
   ResourceName:
     Type: String
+  # review incomplete policy
+  VaultPolicy:
+    Type: String
+    Default: 'false'
+    AllowedValues:
+    - 'false'
+    - 'true'
 
 
 Conditions:
   HasColdStorage: !Not [ !Equals [ '', !Ref 'MoveToColdStorageAfterDays' ]]
-  HasVaultPolicy: !Equals [ 'true', 'false' ]
+  HasVaultPolicy: !Equals [ 'true', !Sub '${VaultPolicy}' ]
 
 
 Resources:
@@ -76,13 +83,19 @@ Resources:
             "Statement": [
               {
                 "Effect": "Allow",
-                "Principal": "*",
+                "Principal": {
+                  "AWS": [
+                    "arn:aws:iam::0123456789000:root",
+                    "arn:aws:iam::0123456789001:root",
+                    ...
+                  ]
+                },
                 "Action": [
-                  "backup:<specific-permission-not-star>",
-                  "backup:<specific-permission-not-star>",
-                  "backup:<specific-permission-not-star>"
+                  "backup:StartBackupJob",
+                  "backup:StartRestoreJob",
+                  "backup:DeleteRecoveryPoint"
                 ],
-                "Resource": "${BackupVault.BackupVaultArn}"
+                "Resource": "${BackupVault.BackupVaultName}"
               }
             ]
           }
