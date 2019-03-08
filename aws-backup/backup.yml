@@ -82,7 +82,7 @@ Resources:
                   "backup:<specific-permission-not-star>",
                   "backup:<specific-permission-not-star>"
                 ],
-                "Resource": "${BackupVault.BackupVaultName}"
+                "Resource": "${BackupVault.BackupVaultArn}"
               }
             ]
           }
