@@ -373,7 +373,7 @@ aws s3api put-bucket-policy\
 
 
 #### deploy stack
-> additionally, the [resource](https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html) being selected must be tagged with `AccountId`
+> see [resource ARNs and namespaces](https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html) for `ResourceId` parameter
 
     stack_name='aws-backup-demo'
 

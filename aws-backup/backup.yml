@@ -259,9 +259,6 @@ Resources:
           - !Sub '${ResourceId}'
           ListOfTags:
           - ConditionType: 'STRINGEQUALS'
-            ConditionKey: 'AccountId'
-            ConditionValue: !Sub '${AWS::AccountId}'
-          - ConditionType: 'STRINGEQUALS'
             ConditionKey: 'Name'
             ConditionValue: !Sub '${ResourceName}'
       AgentDeleteArgs:
