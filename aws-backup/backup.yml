@@ -24,8 +24,10 @@ Parameters:
   # https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html
   ResourceId:
     Type: String
+    Default: ''
   ResourceName:
     Type: String
+    Default: ''
   # review incomplete policy
   VaultPolicy:
     Type: String
@@ -38,6 +40,11 @@ Parameters:
 Conditions:
   HasColdStorage: !Not [ !Equals [ '', !Ref 'MoveToColdStorageAfterDays' ]]
   HasVaultPolicy: !Equals [ 'true', !Sub '${VaultPolicy}' ]
+  HasResourceId: !Not [ !Equals [ '', !Ref 'ResourceId' ]]
+  HasResourceName: !Not [ !Equals [ '', !Ref 'ResourceName' ]]
+  HasBackupSelection: !Or
+  - !Condition HasResourceId
+  - !Condition HasResourceName
 
 
 Resources:
@@ -241,6 +248,7 @@ Resources:
   # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/backup.html#Backup.Client.create_backup_selection
   BackupSelection:
     Type: 'Custom::BackupSelection'
+    Condition: HasBackupSelection
     Version: 1.0
     Properties:
       ServiceToken: !Sub 'arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:generic-custom-resource-provider'
@@ -255,12 +263,16 @@ Resources:
         BackupSelection:
           SelectionName: !Sub '${NameTag}-backup-selection'
           IamRoleArn: !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:role/service-role/AWSBackupDefaultServiceRole'
-          Resources:
+          Resources: !If
+          - HasResourceId
           - !Sub '${ResourceId}'
-          ListOfTags:
+          - !Ref 'AWS::NoValue'
+          ListOfTags: !If
+          - ResourceName
           - ConditionType: 'STRINGEQUALS'
             ConditionKey: 'Name'
             ConditionValue: !Sub '${ResourceName}'
+          - !Ref 'AWS::NoValue'
       AgentDeleteArgs:
         BackupPlanId: !Sub '${BackupPlan.BackupPlanId}'
 
