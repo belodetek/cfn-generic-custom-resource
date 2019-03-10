@@ -268,7 +268,7 @@ Resources:
           - !Sub '${ResourceId}'
           - !Ref 'AWS::NoValue'
           ListOfTags: !If
-          - ResourceName
+          - HasResourceName
           - ConditionType: 'STRINGEQUALS'
             ConditionKey: 'Name'
             ConditionValue: !Sub '${ResourceName}'
