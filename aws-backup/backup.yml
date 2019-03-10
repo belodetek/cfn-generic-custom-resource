@@ -269,9 +269,9 @@ Resources:
           - !Ref 'AWS::NoValue'
           ListOfTags: !If
           - HasResourceName
-          - ConditionType: 'STRINGEQUALS'
-            ConditionKey: 'Name'
-            ConditionValue: !Sub '${ResourceName}'
+          - - ConditionType: 'STRINGEQUALS'
+              ConditionKey: 'Name'
+              ConditionValue: !Sub '${ResourceName}'
           - !Ref 'AWS::NoValue'
       AgentDeleteArgs:
         BackupPlanId: !Sub '${BackupPlan.BackupPlanId}'
