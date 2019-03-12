@@ -265,7 +265,7 @@ Resources:
           IamRoleArn: !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:role/service-role/AWSBackupDefaultServiceRole'
           Resources: !If
           - HasResourceId
-          - !Sub '${ResourceId}'
+          - - !Sub '${ResourceId}'
           - !Ref 'AWS::NoValue'
           ListOfTags: !If
           - HasResourceName
