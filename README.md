@@ -43,9 +43,7 @@ For more information, please read this blog [post](https://anton.belodedenko.me/
 ### init
 
     git clone https://github.com/ab77/cfn-generic-custom-resource\
-      && cd cfn-generic-custom-resource\
-      && git pull --recurse-submodules\
-      && git submodule update --remote --recursive
+      && cd cfn-generic-custom-resource
 
 
 ### create bucket
@@ -55,10 +53,14 @@ For more information, please read this blog [post](https://anton.belodedenko.me/
     aws s3 mb s3://${bucket}
 
 
-#### install requirements
+#### install requirements (venv)
 > 📝 AWS Lambda provided boto3 library doesn't support Client VPN resources at the time of writing, so we need to package it with the code
 
-    pushd generic_provider\
+    sudo pip install venv --user || sudo pip install virtualenv --user\
+      && pushd generic_provider\
+      && python -m venv venv || python -m virtualenv venv\
+      && . venv/bin/activate\
+      && pip install --upgrade pip\
       && pip install --upgrade -r requirements.txt -t .\
       && popd
 
@@ -110,8 +112,11 @@ For more information, please read this blog [post](https://anton.belodedenko.me/
 > 📝  creates Client VPN endpoint with `certificate-authentication`; for `directory-service-authentication` or both, specify additional `DirectoryId` parameter
 
     stack_name='client-vpn-demo'
-    vpc_id=vpc-abcdef1234567890
-    subnets=(subnet-abcdef1234567890 subnet-1234567890abcdef)
+    vpc_id=$(aws ec2 describe-vpcs | jq -r .Vpcs[0].VpcId)
+    subnets=(
+        $(aws ec2 describe-subnets | jq -r ".Subnets[0] | select(.VpcId==\"${vpc_id}\").SubnetId")
+        $(aws ec2 describe-subnets | jq -r ".Subnets[1] | select(.VpcId==\"${vpc_id}\").SubnetId")
+    )
     subnet_count=${#subnets[@]}
     cidr=172.16.0.0/22
 
@@ -119,7 +124,7 @@ For more information, please read this blog [post](https://anton.belodedenko.me/
     pushd client-vpn; aws cloudformation deploy\
       --template-file main.yaml\
       --stack-name ${stack_name}\
-      --capabilities CAPABILITY_IAM\
+      --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM\
       --parameter-overrides\
       VpcId=${vpc_id}\
       CidrBlock=${cidr}\
@@ -217,7 +222,7 @@ aws s3api put-bucket-policy\
     pushd cognito-idp; aws cloudformation deploy\
       --template-file main.yaml\
       --stack-name ${stack_name}\
-      --capabilities CAPABILITY_IAM\
+      --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM\
       --parameter-overrides\
       DomainName=${domain_name}\
       MetadataURL=${metadata_url}\
@@ -340,7 +345,7 @@ aws s3api put-bucket-policy\
     pushd vpc-peering; aws cloudformation deploy\
       --template-file main.yaml\
       --stack-name ${stack_name}\
-      --capabilities CAPABILITY_IAM\
+      --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM\
       --parameter-overrides\
       SourceVpcId=${source_vpc}\
       SourceRouteTableIds=${source_route_table_ids}\
@@ -385,7 +390,7 @@ aws s3api put-bucket-policy\
     pushd aws-backup; aws cloudformation deploy\
       --template-file backup.yaml\
       --stack-name ${stack_name}\
-      --capabilities CAPABILITY_IAM\
+      --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM\
       --parameter-overrides\
       NameTag=${stack_name}\
       ResourceId=${resource_id}\

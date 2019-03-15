@@ -1,5 +1,5 @@
 .DS_Store
-easy_rsa
+easy-rsa
 main.yaml
 lambda.yaml
 client-vpn.yaml
