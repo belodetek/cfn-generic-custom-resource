@@ -2,6 +2,9 @@ language: python
 python:
   - "3.6"
 cache: pip
+env:
+  global:
+  - AWS_DEFAULT_REGION=${AWS_REGION}
 install:
   - pip install -r requirements.txt  
   - pip install -r generic_provider/requirements.txt
