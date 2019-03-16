@@ -9,15 +9,7 @@ install:
   - pip install -r requirements.txt  
   - pip install -r generic_provider/requirements.txt
 script:
-  - aws cloudformation validate-template --template-body file://lambda-template.yaml
-  - aws cloudformation validate-template --template-body file://client-vpn/main-template.yaml
-  - aws cloudformation validate-template --template-body file://client-vpn/client-vpn-template.yaml
-  - aws cloudformation validate-template --template-body file://cognito-idp/main-template.yaml
-  - aws cloudformation validate-template --template-body file://cognito-idp/cognito-template.yaml
-  - aws cloudformation validate-template --template-body file://vpc-peering/main-template.yaml
-  - aws cloudformation validate-template --template-body file://vpc-peering/ec2.yml
-  - aws cloudformation validate-template --template-body file://vpc-peering/vpc.yml
-  - aws cloudformation validate-template --template-body file://aws-backup/backup.yml
+  - ./validate-templates.sh
   - pushd generic_provider
   - python -m unittest
   - popd
