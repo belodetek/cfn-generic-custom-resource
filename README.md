@@ -16,6 +16,7 @@
 ### mock requests
 
 #### client
+* [S3](#s3)
 * [AWS Backup](#backup)
 * [Directory Services](#directory-services)
 * [IAM](#iam)
@@ -405,6 +406,91 @@ aws s3api put-bucket-policy\
 
 ## mock client requests
 > 🐞 useful to debug resource creation of AWS resources from a local workstation
+
+### S3
+> [S3](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/s3.html) API reference
+
+#### put-bucket-notification-configuration
+> mock CloudFormation request to [add](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/s3.html#S3.Client.put_bucket_notification_configuration) a bucket Lambda notification configuration
+
+    bucket='foo'
+
+    lambda_function='bar'
+
+
+    pushd generic_provider
+    echo "{
+      \"RequestType\": \"Create\",
+      \"ResponseURL\": \"https://cloudformation-custom-resource-response-${AWS_REGION}.s3.amazonaws.com/\",
+      \"StackId\": \"arn:aws:cloudformation:${AWS_REGION}:$(aws sts get-caller-identity | jq -r '.Account'):stack/MockStack/$(uuid)\",
+      \"RequestId\": \"$(uuid)\",
+      \"ResourceType\": \"Custom::MockResource\",
+      \"LogicalResourceId\": \"MockResource\",
+      \"PhysicalResourceId\": \"$(uuid)\",
+      \"ResourceProperties\": {
+          \"AgentType\": \"client\",
+          \"AgentService\": \"s3\",
+          \"AgentCreateMethod\": \"put_bucket_notification_configuration\",
+          \"AgentUpdateMethod\": \"put_bucket_notification_configuration\",
+          \"AgentDeleteMethod\": \"put_bucket_notification_configuration\",
+          \"AgentCreateArgs\": {
+              \"Bucket\": \"${bucket}\",
+              \"NotificationConfiguration\": {
+                  \"LambdaFunctionConfigurations\": [{
+                      \"LambdaFunctionArn\": \"arn:aws:lambda:${AWS_REGION}:$(aws sts get-caller-identity | jq -r '.Account'):function:${lambda_function}\",
+                      \"Events\": [
+                          \"s3:ObjectRemoved:*\"
+                      ],
+                      \"Filter\": {
+                          \"Key\": {
+                              \"FilterRules\": [
+                                  {
+                                      \"Name\": \"prefix\",
+                                      \"Value\": \"foo/\"
+                                  },
+                                  {
+                                      \"Name\": \"suffix\",
+                                      \"Value\": \".bar\"
+                                  }
+                              ]
+                          }
+                      }
+                  }]
+              }
+          },
+          \"AgentUpdateArgs\": {
+              \"Bucket\": \"${bucket}\",
+              \"NotificationConfiguration\": {
+                  \"LambdaFunctionConfigurations\": [{
+                      \"LambdaFunctionArn\": \"arn:aws:lambda:${AWS_REGION}:$(aws sts get-caller-identity | jq -r '.Account'):function:${lambda_function}\",
+                      \"Events\": [
+                          \"s3:ObjectRemoved:*\"
+                      ],
+                      \"Filter\": {
+                          \"Key\": {
+                              \"FilterRules\": [
+                                  {
+                                      \"Name\": \"prefix\",
+                                      \"Value\": \"foo/\"
+                                  },
+                                  {
+                                      \"Name\": \"suffix\",
+                                      \"Value\": \".bar\"
+                                  }
+                              ]
+                          }
+                      }
+                  }]
+              }
+          },
+          \"AgentDeleteArgs\": {
+              \"Bucket\": \"${bucket}\",
+              \"NotificationConfiguration\": {}
+          }
+      }
+    }" | jq -c | VERBOSE=1 ./generic_provider.py
+    popd
+
 
 ### Backup
 > [Backup](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/backup.html) API reference
