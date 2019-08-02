@@ -5,11 +5,15 @@
 #  This file is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, express or implied.
 #  See the License for the specific language governing permissions and limitations under the License.
 
-from botocore.vendored import requests
+try:
+    from botocore.vendored import requests
+except ImportError:
+    import requests
+
 import json
 
-SUCCESS = "SUCCESS"
-FAILED = "FAILED"
+SUCCESS = 'SUCCESS'
+FAILED = 'FAILED'
 
 def send(event, context, responseStatus, responseData=None, physicalResourceId=None, noEcho=False, reason=None):
     try:
