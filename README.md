@@ -415,8 +415,7 @@ aws s3api put-bucket-policy\
 #### request_certificate
 > mock CloudFormation request to [request_certificate](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/acm.html#ACM.Client.request_certificate) in a different account and/or region (e.g. for CloudFront)
 
-    aws_assume_role='MyRoleNameWithACMPermissions'
-
+    # https://forums.aws.amazon.com/thread.jspa?messageID=912980
     aws_region='us-east-1'
 
     pushd generic_provider
@@ -432,7 +431,6 @@ aws s3api put-bucket-policy\
           \"AgentType\": \"client\",
           \"AgentService\": \"acm\",
           \"AgentRegion\": \"${aws_region}\",
-          \"RoleArn\": \"arn:aws:iam::$(aws sts get-caller-identity | jq -r '.Account'):role/${aws_assume_role}\",
           \"AgentCreateMethod\": \"request_certificate\",
           \"AgentDeleteMethod\": \"delete_certificate\",
           \"AgentWaitMethod\": \"certificate_validated\",
@@ -442,7 +440,7 @@ aws s3api put-bucket-policy\
               \"DomainName\": \"foo.baz.com\",
               \"ValidationMethod\": \"EMAIL\",
               \"SubjectAlternativeNames\": [
-                  \"bar.grsthrive.com\"
+                  \"bar.baz.com\"
               ],
               \"DomainValidationOptions\": [
                   {
