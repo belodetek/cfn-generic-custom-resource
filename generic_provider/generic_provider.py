@@ -36,7 +36,7 @@ class Provider:
             print('profile={} region={}'.format(self.profile, self.region))
             self.session = boto3.session.Session(profile_name=self.profile)
             boto3.setup_default_session(profile_name=self.profile)
-           
+
 
     def get_response(self, agent_attr, **agent_kwargs):
         # TBC: better way to differentiate between resources and clients
@@ -50,7 +50,7 @@ class Provider:
         return eval(expr)
 
 
-    def wait_event(self, agent, event, create=False, update=False, delete=False):
+    def wait_event(self, agent, event, resource=None, create=False, update=False, delete=False):
         resource_key = 'ResourceProperties'
         try:
             no_echo = event[resource_key]['NoEcho'].lower()
@@ -102,17 +102,20 @@ class Provider:
             agent_resource_id = None
         if agent_resource_id:
             try:
-                if type(agent_resource_id) == list:
-                    agent_kwargs[agent_resource_id[0]] = [event['PhysicalResourceId']]
-                    assert agent_kwargs[agent_resource_id[0]]
-                else:
-                    agent_kwargs[agent_resource_id] = event['PhysicalResourceId']
-                    assert agent_kwargs[agent_resource_id]
+                agent_kwargs[agent_resource_id] = resource[agent_resource_id]
             except:
                 try:
-                    agent_kwargs[agent_resource_id] = event[resource_key]['AgentWaitArgs'][agent_resource_id]
+                    if type(agent_resource_id) == list:
+                        agent_kwargs[agent_resource_id[0]] = [event['PhysicalResourceId']]
+                        assert agent_kwargs[agent_resource_id[0]]
+                    else:
+                        agent_kwargs[agent_resource_id] = event['PhysicalResourceId']
+                        assert agent_kwargs[agent_resource_id]
                 except:
-                    pass
+                    try:
+                        agent_kwargs[agent_resource_id] = event[resource_key]['AgentWaitArgs'][agent_resource_id]
+                    except:
+                        pass
         try:
             agent_method = event[resource_key]['AgentWaitMethod']
         except:
@@ -167,7 +170,7 @@ class Provider:
                         if self.verbose: print_exc()
                 else:
                     response = self.get_response(agent_attr, **agent_kwargs)
-                
+
                 match = jsonpath(response, agent_query_expr)
                 if no_echo == 'false':
                     print('agent_query_expr={} agent_query_value={} match={} create={} update={} delete={}'.format(
@@ -264,7 +267,17 @@ class Provider:
                     update,
                     delete
                 ))
-            self.wait_event(agent, event, create=create, update=update, delete=delete)
+
+            # wait
+            self.wait_event(
+                agent,
+                event,
+                resource=response,
+                create=create,
+                update=update,
+                delete=delete
+            )
+
             try:
                 responseData = response[agent_response_node]
                 assert responseData, 'responseData from response[agent_response_node]'
@@ -332,7 +345,7 @@ class Provider:
             try:
                 agent_kwargs = event[resource_key]['AgentCreateArgs']
             except:
-                agent_kwargs = {}    
+                agent_kwargs = {}
         try:
             agent_query_expr = event[resource_key]['AgentWaitQueryExpr']
         except:
@@ -348,7 +361,7 @@ class Provider:
                 agent_kwargs, agent_query_expr, agent_attr, agent_resource_id, agent_property
             ))
         assert agent_attr and agent_resource_id and agent_query_expr and agent_property
-        resource = self.get_response(agent_attr, **agent_kwargs)        
+        resource = self.get_response(agent_attr, **agent_kwargs)
         if agent_property in dir(resource):
             response = self.get_resource(
                 resource,

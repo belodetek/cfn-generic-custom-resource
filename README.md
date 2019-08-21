@@ -407,6 +407,58 @@ aws s3api put-bucket-policy\
 ## mock client requests
 > 🐞 useful to debug resource creation of AWS resources from a local workstation
 
+
+### ACM
+> [ACM](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/s3.html) API reference
+
+#### request_certificate
+> mock CloudFormation request to [request_certificate](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/acm.html#ACM.Client.request_certificate) in a different account and/or region (e.g. for CloudFront)
+
+    aws_assume_role='MyRoleNameWithACMPermissions'
+
+    aws_region='us-east-1'
+
+    pushd generic_provider
+    echo "{
+      \"RequestType\": \"Create\",
+      \"ResponseURL\": \"https://cloudformation-custom-resource-response-${AWS_REGION}.s3.amazonaws.com/\",
+      \"StackId\": \"arn:aws:cloudformation:${AWS_REGION}:$(aws sts get-caller-identity | jq -r '.Account'):stack/MockStack/$(uuid)\",
+      \"RequestId\": \"$(uuid)\",
+      \"ResourceType\": \"Custom::MockResource\",
+      \"LogicalResourceId\": \"MockResource\",
+      \"PhysicalResourceId\": \"$(uuid)\",
+      \"ResourceProperties\": {
+          \"AgentType\": \"client\",
+          \"AgentService\": \"acm\",
+          \"AgentRegion\": \"${aws_region}\",
+          \"RoleArn\": \"arn:aws:iam::$(aws sts get-caller-identity | jq -r '.Account'):role/${aws_assume_role}\",
+          \"AgentCreateMethod\": \"request_certificate\",
+          \"AgentDeleteMethod\": \"delete_certificate\",
+          \"AgentWaitMethod\": \"certificate_validated\",
+          \"AgentWaitQueryExpr\": \"$.CertificateArn\",
+          \"AgentWaitResourceId\": \"CertificateArn\",
+          \"AgentCreateArgs\": {
+              \"DomainName\": \"foo.baz.com\",
+              \"ValidationMethod\": \"EMAIL\",
+              \"SubjectAlternativeNames\": [
+                  \"bar.grsthrive.com\"
+              ],
+              \"DomainValidationOptions\": [
+                  {
+                      \"DomainName\": \"foo.baz.com\",
+                      \"ValidationDomain\": \"baz.com\"
+                  },
+                  {
+                      \"DomainName\": \"bar.baz.com\",
+                      \"ValidationDomain\": \"baz.com\"
+                  }
+              ]
+          }
+      }
+    }" | jq -c | VERBOSE=1 ./generic_provider.py
+    popd
+
+
 ### S3
 > [S3](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/s3.html) API reference
 
