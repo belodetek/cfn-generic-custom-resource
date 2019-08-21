@@ -16,6 +16,7 @@
 ### mock requests
 
 #### client
+* [ACM](#acm)
 * [S3](#s3)
 * [AWS Backup](#backup)
 * [Directory Services](#directory-services)
