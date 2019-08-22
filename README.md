@@ -432,10 +432,12 @@ aws s3api put-bucket-policy\
           \"AgentService\": \"acm\",
           \"AgentRegion\": \"${aws_region}\",
           \"AgentCreateMethod\": \"request_certificate\",
+          \"AgentUpdateMethod\": \"update_certificate_options\",
           \"AgentDeleteMethod\": \"delete_certificate\",
           \"AgentWaitMethod\": \"certificate_validated\",
           \"AgentWaitQueryExpr\": \"$.CertificateArn\",
           \"AgentWaitResourceId\": \"CertificateArn\",
+          \"AgentResourceId\": \"CertificateArn\",
           \"AgentCreateArgs\": {
               \"DomainName\": \"foo.baz.com\",
               \"ValidationMethod\": \"EMAIL\",
@@ -452,6 +454,11 @@ aws s3api put-bucket-policy\
                       \"ValidationDomain\": \"baz.com\"
                   }
               ]
+          },
+          \"AgentUpdateArgs\": {
+              \"Options\": {
+                  \"CertificateTransparencyLoggingPreference\": \"DISABLED\"
+              }
           }
       }
     }" | jq -c | VERBOSE=1 ./generic_provider.py
