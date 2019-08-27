@@ -218,7 +218,7 @@ class Provider:
             agent_resource_id = event[resource_key]['AgentResourceId']
         except:
             agent_resource_id = None
-        if agent_resource_id:
+        if agent_resource_id and not create:
             try:
                 agent_kwargs[agent_resource_id] = event['PhysicalResourceId']
             except:

@@ -465,6 +465,78 @@ aws s3api put-bucket-policy\
     popd
 
 
+
+
+
+
+#### create_certificate_authority
+> mock CloudFormation request to [create_certificate_authority](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/acm-pca.html#ACMPCA.Client.create_certificate_authority)
+
+    pushd generic_provider
+    echo "{
+      \"RequestType\": \"Create\",
+      \"ResponseURL\": \"https://cloudformation-custom-resource-response-${AWS_REGION}.s3.amazonaws.com/\",
+      \"StackId\": \"arn:aws:cloudformation:${AWS_REGION}:$(aws sts get-caller-identity | jq -r '.Account'):stack/MockStack/$(uuid)\",
+      \"RequestId\": \"$(uuid)\",
+      \"ResourceType\": \"Custom::MockResource\",
+      \"LogicalResourceId\": \"MockResource\",
+      \"PhysicalResourceId\": \"$(uuid)\",
+      \"ResourceProperties\": {
+          \"AgentType\": \"client\",
+          \"AgentService\": \"acm-pca\",
+          \"AgentCreateMethod\": \"create_certificate_authority\",
+          \"AgentUpdateMethod\": \"update_certificate_authority\",
+          \"AgentDeleteMethod\": \"delete_certificate_authority\",
+          \"AgentWaitQueryExpr\": \"$.CertificateAuthorityArn\",
+          \"AgentWaitResourceId\": \"CertificateAuthorityArn\",
+          \"AgentResourceId\": \"CertificateAuthorityArn\",
+          \"AgentCreateArgs\": {
+              \"CertificateAuthorityConfiguration\": {
+                  \"KeyAlgorithm\": \"RSA_2048\",
+                  \"SigningAlgorithm\": \"SHA256WITHRSA\",
+                  \"Subject\": {
+                      \"Country\": \"FB\",
+                      \"Organization\": \"foo-bar\",
+                      \"OrganizationalUnit\": \"foo-bar\",
+                      \"State\": \"TX\",
+                      \"CommonName\": \"foo@bar.com\"
+                  }
+              },
+              \"RevocationConfiguration\": {
+                  \"CrlConfiguration\": {
+                      \"Enabled\": true,
+                      \"ExpirationInDays\": 3650,
+                      \"CustomCname\": \"foo.bar.com\",
+                      \"S3BucketName\": \"foo-bar\"
+                  }
+              },
+              \"CertificateAuthorityType\": \"ROOT\",
+              \"Tags\": [
+                  {
+                      \"Key\": \"Name\",
+                      \"Value\": \"foo-bar\"
+
+                  }
+              ]
+          },
+          \"AgentUpdateArgs\": {
+              \"RevocationConfiguration\": {
+                  \"CrlConfiguration\": {
+                      \"Enabled\": true,
+                      \"ExpirationInDays\": 3650,
+                      \"CustomCname\": \"foo.bar.com\"
+                  }
+              },
+              \"Status\": \"ACTIVE\"
+          },
+          \"AgentDeleteArgs\": {
+              \"PermanentDeletionTimeInDays\": 7
+          }
+      }
+    }" | jq -c | VERBOSE=1 ./generic_provider.py
+    popd
+
+
 ### S3
 > [S3](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/s3.html) API reference
 
