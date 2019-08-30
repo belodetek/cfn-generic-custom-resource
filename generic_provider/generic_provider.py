@@ -468,6 +468,10 @@ class Provider:
                         reason=str(e)
                     )
                 return False
+            if agent_type == 'custom':
+                from importlib import import_module
+                agent_module = import_module(agent_service)
+                agent = getattr(agent_module, agent_service.upper())(**kwargs)
         except Exception as e:
             if self.verbose: print_exc()
             cfnresponse.send(
