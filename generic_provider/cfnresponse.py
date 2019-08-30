@@ -48,8 +48,6 @@ def send(event, context, responseStatus, responseData=None, physicalResourceId=N
 
     json_responseBody = json.dumps(responseBody, sort_keys=True, default=str)
 
-    if not noEcho: print("Response body:\n" + json_responseBody)
-
     if not log_stream_name == '__mock__':
         headers = {
             'content-type' : '',
@@ -66,4 +64,4 @@ def send(event, context, responseStatus, responseData=None, physicalResourceId=N
         except Exception as e:
             print("send(..) failed executing requests.put(..): " + str(e))
     else:
-        print('Done!')
+        print(json_responseBody)
