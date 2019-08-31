@@ -1,4 +1,5 @@
 .DS_Store
+venv*
 easy-rsa
 main.yaml
 lambda.yaml
