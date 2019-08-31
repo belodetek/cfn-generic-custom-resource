@@ -5,7 +5,6 @@ compile-libs:
 	  -w /src \
 	  amazonlinux:latest \
 	  bash -c 'yum update -y\
-           && amazon-linux-extras install docker\
 	   && yum groupinstall "Development Tools" -y\
 	   && yum install -y python-pip ibffi openssl-devel\
 	   && pip install --upgrade pip\
