@@ -8,6 +8,6 @@ compile-libs:
 	    && yum install -y python-pip ibffi openssl-devel\
 	    && pip install --upgrade pip\
 	    && pip install --upgrade -r ./requirements.txt -t .\
-	    && ls -la'
+	    && ls -la . && find . -name *.so'
 
 .PHONY: compile-libs
