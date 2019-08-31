@@ -3,7 +3,8 @@ compile-libs:
 	  -v `pwd`:/src \
 	  -w /src \
 	  amazonlinux:latest \
-	  bash -c 'yum update -y\
+	  bash -c 'pwd && ls -la .\
+	    && yum update -y\
 	    && yum groupinstall "Development Tools" -y\
 	    && yum install -y python-pip ibffi openssl-devel\
 	    && pip install --upgrade pip\
