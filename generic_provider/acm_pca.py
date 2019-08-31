@@ -25,7 +25,7 @@ class ACM_PCA:
     def load_private_key(self, key_pem):
         return crypto.load_privatekey(
             crypto.FILETYPE_PEM,
-            bytes(key_pem, 'utf-8')
+            key_pem.encode()
         )
 
 
@@ -69,16 +69,16 @@ class ACM_PCA:
         cert.set_pubkey(csr.get_pubkey())
         cert.add_extensions([
             crypto.X509Extension(
-                bytes('basicConstraints', 'utf-8'),
+                'basicConstraints'.encode(),
                 False,
-                bytes('critical,CA:TRUE', 'utf-8'),
+                'critical,CA:TRUE'.encode(),
             )
         ])
         cert.gmtime_adj_notBefore(0)
         cert.gmtime_adj_notAfter(kwargs['ValidityInSeconds'])
         cert.sign(self.private_key, kwargs['Digest'])        
         return {
-            'Certificate': crypto.dump_certificate(crypto.FILETYPE_PEM, cert).decode('utf-8')
+            'Certificate': crypto.dump_certificate(crypto.FILETYPE_PEM, cert).decode()
         }
 
 
@@ -87,11 +87,11 @@ class ACM_PCA:
         client = boto3.client('acm-pca')
         params = {
             'CertificateAuthorityArn': kwargs['CertificateAuthorityArn'],
-            'Certificate': bytes(kwargs['Certificate'], 'utf-8')
+            'Certificate': kwargs['Certificate'].encode()
         }
         try:
             assert 'CertificateChain' in kwargs
-            params['CertificateChain'] = bytes(kwargs['CertificateChain'], 'utf-8')
+            params['CertificateChain'] = kwargs['CertificateChain'].encode()
         except:
             pass
         return client.import_certificate_authority_certificate(params)

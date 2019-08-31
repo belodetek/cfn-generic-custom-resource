@@ -537,6 +537,62 @@ aws s3api put-bucket-policy\
     popd
 
 
+#### sign_csr
+> mock CloudFormation request to [sign_csr](https://github.com/ab77/cfn-generic-custom-resource/blob/master/generic_provider/acm_pca.py) request
+
+    csr_pem='-----BEGIN CERTIFICATE REQUEST-----\n....'
+
+    pushd generic_provider
+    echo "{
+      \"RequestType\": \"Create\",
+      \"ResponseURL\": \"https://cloudformation-custom-resource-response-${AWS_REGION}.s3.amazonaws.com/\",
+      \"StackId\": \"arn:aws:cloudformation:${AWS_REGION}:$(aws sts get-caller-identity | jq -r '.Account'):stack/MockStack/$(uuid)\",
+      \"RequestId\": \"$(uuid)\",
+      \"ResourceType\": \"Custom::MockResource\",
+      \"LogicalResourceId\": \"MockResource\",
+      \"PhysicalResourceId\": \"$(uuid)\",
+      \"ResourceProperties\": {
+          \"AgentType\": \"custom\",
+          \"AgentService\": \"acm_pca\",
+          \"AgentCreateMethod\": \"sign_csr\",
+          \"AgentCreateArgs\": {
+              \"PrivateKey\": \"/rsa-private-keys/acm-pca/key_pair\",
+              \"Csr\": \"${csr_pem}\",
+              \"ValidityInSeconds\": 10365246060,
+              \"Digest\": \"sha256\"
+          }
+      }
+    }" | jq -c | VERBOSE=1 ./generic_provider.py
+    popd
+
+
+#### import_certificate_authority_certificate
+> mock CloudFormation request to [import_certificate_authority_certificate](https://github.com/ab77/cfn-generic-custom-resource/blob/master/generic_provider/acm_pca.py)
+
+    certificate_pem='-----BEGIN CERTIFICATE-----\n....'
+
+    pushd generic_provider
+    echo "{
+      \"RequestType\": \"Create\",
+      \"ResponseURL\": \"https://cloudformation-custom-resource-response-${AWS_REGION}.s3.amazonaws.com/\",
+      \"StackId\": \"arn:aws:cloudformation:${AWS_REGION}:$(aws sts get-caller-identity | jq -r '.Account'):stack/MockStack/$(uuid)\",
+      \"RequestId\": \"$(uuid)\",
+      \"ResourceType\": \"Custom::MockResource\",
+      \"LogicalResourceId\": \"MockResource\",
+      \"PhysicalResourceId\": \"$(uuid)\",
+      \"ResourceProperties\": {
+          \"AgentType\": \"custom\",
+          \"AgentService\": \"acm_pca\",
+          \"AgentCreateMethod\": \"import_certificate_authority_certificate\",
+          \"AgentCreateArgs\": {
+              \"CertificateAuthorityArn\": \"arn:aws:acm-pca:${AWS_REGION}:$(aws sts get-caller-identity | jq -r '.Account'):certificate-authority/$(uuid)\",
+              \"Certificate\": \"${certificate_pem}\"
+          }
+      }
+    }" | jq -c | VERBOSE=1 ./generic_provider.py
+    popd
+
+
 ### S3
 > [S3](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/s3.html) API reference
 
