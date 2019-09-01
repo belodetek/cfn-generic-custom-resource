@@ -1,4 +1,4 @@
-all: clean compile-libs
+all: clean compile-libs debug
 
 compile-libs:
 	@docker run --rm \
@@ -14,10 +14,12 @@ compile-libs:
 	    && python -m virtualenv $${VIRTUAL_ENV}\
 	    && export PATH="$${VIRTUAL_ENV}/bin:$${PATH}"\
 	    && pip install --upgrade pip\
-	    && pip install --upgrade --force -r ./requirements.txt -t .\
-	    && find . -name "*.so"'''
+	    && pip install --upgrade --force -r ./requirements.txt -t .'''
 
 clean:
 	@rm -rf enum* venv*; find . -name '*.so' -delete
+
+debug:
+	@find . -name '*.so'
 
 .PHONY: all
