@@ -1,8 +1,10 @@
+all: clean compile-libs
+
 compile-libs:
 	@docker run --rm \
 	  -v `pwd`:/src \
 	  -w /src \
-	  amazonlinux:latest \
+	  lambci/lambda:build-python2.7 \
 	  bash -c '''pwd && ls -la .\
 	    && yum update -y\
 	    && yum groupinstall "Development Tools" -y\
@@ -12,6 +14,10 @@ compile-libs:
 	    && python -m virtualenv $${VIRTUAL_ENV}\
 	    && export PATH="$${VIRTUAL_ENV}/bin:$${PATH}"\
 	    && pip install --upgrade pip\
-	    && pip install --upgrade -r ./requirements.txt -t .'''
+	    && pip install --upgrade --force -r ./requirements.txt -t .\
+	    && find . -name "*.so"'''
 
-.PHONY: compile-libs
+clean:
+	@rm -rf enum* venv*; find . -name '*.so' -delete
+
+.PHONY: all
