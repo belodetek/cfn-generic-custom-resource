@@ -14,7 +14,8 @@ compile-libs:
 	    && python -m virtualenv $${VIRTUAL_ENV}\
 	    && export PATH="$${VIRTUAL_ENV}/bin:$${PATH}"\
 	    && pip install --upgrade pip\
-	    && pip install --upgrade --force -r ./requirements.txt -t .'''
+	    && pip install --upgrade --force -r ./requirements.txt -t .''' \
+	&& rm -rf venv2
 
 clean:
 	@rm -rf enum* venv*; find . -name '*.so' -delete
