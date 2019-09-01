@@ -2,6 +2,7 @@
 **
 !.ignoresync
 !.ignoremake
+!.lambdaignore
 !Makefile
 !cfnresponse.py
 !generic_provider.py
