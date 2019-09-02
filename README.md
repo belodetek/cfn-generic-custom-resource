@@ -465,10 +465,6 @@ aws s3api put-bucket-policy\
     popd
 
 
-
-
-
-
 #### create_certificate_authority
 > mock CloudFormation request to [create_certificate_authority](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/acm-pca.html#ACMPCA.Client.create_certificate_authority)
 
@@ -498,14 +494,13 @@ aws s3api put-bucket-policy\
                       \"Country\": \"FB\",
                       \"Organization\": \"foo-bar\",
                       \"OrganizationalUnit\": \"foo-bar\",
-                      \"State\": \"TX\",
                       \"CommonName\": \"foo@bar.com\"
                   }
               },
               \"RevocationConfiguration\": {
                   \"CrlConfiguration\": {
                       \"Enabled\": true,
-                      \"ExpirationInDays\": 3650,
+                      \"ExpirationInDays\": 7,
                       \"CustomCname\": \"foo.bar.com\",
                       \"S3BucketName\": \"foo-bar\"
                   }
@@ -523,7 +518,7 @@ aws s3api put-bucket-policy\
               \"RevocationConfiguration\": {
                   \"CrlConfiguration\": {
                       \"Enabled\": true,
-                      \"ExpirationInDays\": 3650,
+                      \"ExpirationInDays\": 7,
                       \"CustomCname\": \"foo.bar.com\"
                   }
               },
@@ -540,7 +535,13 @@ aws s3api put-bucket-policy\
 #### sign_csr
 > mock CloudFormation request to [sign_csr](https://github.com/ab77/cfn-generic-custom-resource/blob/master/generic_provider/acm_pca.py) request
 
-    csr_pem='-----BEGIN CERTIFICATE REQUEST-----\n....'
+    # generate test key and CSR
+    openssl req -new -newkey rsa:2048 -nodes -keyout server.key -out server.csr
+    csr_pem=$(cat server.csr  | sed -E ':a;N;$!ba;s/\r{0,1}\n/\\n/g')
+
+    # parameter name containg RSA private key in the SSM Paraeter Store (e.g. https://github.com/binxio/cfn-secret-provider)
+    private_key='/rsa-private-keys/acm-pca/key_pair'
+
 
     pushd generic_provider
     echo "{
@@ -556,7 +557,7 @@ aws s3api put-bucket-policy\
           \"AgentService\": \"acm_pca\",
           \"AgentCreateMethod\": \"sign_csr\",
           \"AgentCreateArgs\": {
-              \"PrivateKey\": \"/rsa-private-keys/acm-pca/key_pair\",
+              \"PrivateKey\": \"${private_key}",
               \"Csr\": \"${csr_pem}\",
               \"ValidityInSeconds\": 10365246060,
               \"Digest\": \"sha256\"
