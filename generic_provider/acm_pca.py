@@ -5,6 +5,7 @@ import re
 import random
 import boto3
 from OpenSSL import crypto
+from OpenSSL import SSL
 from datetime import datetime
 
 
@@ -36,9 +37,20 @@ class ACM_PCA:
         )
 
 
+    def check_cert(self, private_key, cert):
+        ctx = SSL.Context(SSL.TLSv1_METHOD)
+        ctx.use_privatekey(private_key)
+        ctx.use_certificate(cert)
+        try:
+          ctx.check_privatekey()
+          return True
+        except SSL.Error:
+          return False
+
+
     def sign_csr(self, *args, **kwargs):
         if self.verbose: print('args: {}, kwargs: {}'.format(args, kwargs))
-        self.private_key = self.load_private_key(
+        private_key = self.load_private_key(
             self.get_private_key_pem(kwargs['PrivateKey'])
         )
 
@@ -76,7 +88,7 @@ class ACM_PCA:
         ])
         cert.gmtime_adj_notBefore(0)
         cert.gmtime_adj_notAfter(kwargs['ValidityInSeconds'])
-        cert.sign(self.private_key, kwargs['Digest'])        
+        cert.sign(private_key, kwargs['Digest'])
         return {
             'Certificate': crypto.dump_certificate(crypto.FILETYPE_PEM, cert).decode()
         }
