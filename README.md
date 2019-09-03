@@ -539,7 +539,7 @@ aws s3api put-bucket-policy\
     openssl req -new -newkey rsa:2048 -nodes -keyout server.key -out server.csr
     csr_pem=$(cat server.csr  | sed -E ':a;N;$!ba;s/\r{0,1}\n/\\n/g')
 
-    # parameter name containg RSA private key in the SSM Paraeter Store (e.g. https://github.com/binxio/cfn-secret-provider)
+    # parameter name containg your RSA private (signing) key in the SSM Parameter Store (e.g. https://github.com/binxio/cfn-secret-provider)
     private_key='/rsa-private-keys/acm-pca/key_pair'
 
 

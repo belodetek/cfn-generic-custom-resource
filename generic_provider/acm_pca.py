@@ -48,6 +48,21 @@ class ACM_PCA:
           return False
 
 
+    def issue_certificate(self, *args, **kwargs):
+        if self.verbose: print('args: {}, kwargs: {}'.format(args, kwargs))
+        client = boto3.client('acm-pca')
+        return client.issue_certificate(
+            CertificateAuthorityArn=kwargs['CertificateAuthorityArn'],
+            Csr=kwargs['Csr'].encode(),
+            SigningAlgorithm=kwargs['SigningAlgorithm'],
+            TemplateArn=kwargs['TemplateArn'],
+            Validity={
+                'Value': kwargs['Validity']['Value'],
+                'Type': kwargs['Validity']['Type']
+            }
+        )
+
+
     def sign_csr(self, *args, **kwargs):
         if self.verbose: print('args: {}, kwargs: {}'.format(args, kwargs))
         private_key = self.load_private_key(
