@@ -535,12 +535,15 @@ aws s3api put-bucket-policy\
 #### sign_csr
 > mock CloudFormation request to [sign_csr](https://github.com/ab77/cfn-generic-custom-resource/blob/master/generic_provider/acm_pca.py) request
 
-    # generate test key and CSR
-    openssl req -new -newkey rsa:2048 -nodes -keyout server.key -out server.csr
-    csr_pem=$(cat server.csr  | sed -E ':a;N;$!ba;s/\r{0,1}\n/\\n/g')
+    # upload RSA private (signing) key to the SSM Parameter Store
+    openssl genrsa -out signing.key 4096 && signing_key=$(cat signing.key)
 
-    # parameter name containg your RSA private (signing) key in the SSM Parameter Store (e.g. https://github.com/binxio/cfn-secret-provider)
-    private_key='/rsa-private-keys/acm-pca/key_pair'
+    aws ssm put-parameter --type SecureString\
+      --name '/rsa-private-keys/acm-pca/key_pair'\
+      --value ${signing_key}
+
+    # generate CSR
+    openssl req -new -newkey rsa:2048 -nodes -keyout ca.key -out ca.csr
 
 
     pushd generic_provider
@@ -557,8 +560,8 @@ aws s3api put-bucket-policy\
           \"AgentService\": \"acm_pca\",
           \"AgentCreateMethod\": \"sign_csr\",
           \"AgentCreateArgs\": {
-              \"PrivateKey\": \"${private_key}",
-              \"Csr\": \"${csr_pem}\",
+              \"PrivateKey\": \"/rsa-private-keys/acm-pca/key_pair",
+              \"Csr\": \"$(cat ca.csr  | sed -E ':a;N;$!ba;s/\r{0,1}\n/\\n/g')\",
               \"ValidityInSeconds\": 10365246060,
               \"Digest\": \"sha256\"
           }
