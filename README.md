@@ -566,7 +566,8 @@ aws s3api put-bucket-policy\
               \"Digest\": \"sha256\"
           }
       }
-    }" | jq -c | VERBOSE=1 ./generic_provider.py
+    }" | jq -c | VERBOSE=1 ./generic_provider.py > test.crt && openssl x509 -in test.crt -text -noout
+
     popd
 
 

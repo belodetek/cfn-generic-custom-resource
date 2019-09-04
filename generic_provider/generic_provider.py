@@ -33,7 +33,13 @@ class Provider:
         self.session = boto3.session.Session()
         boto3.setup_default_session()
         if self.profile:
-            print('profile={} region={}'.format(self.profile, self.region))
+            print(
+                'profile={} region={}'.format(
+                    self.profile,
+                    self.region
+                ),
+                file=sys.stderr
+            )
             self.session = boto3.session.Session(profile_name=self.profile)
             boto3.setup_default_session(profile_name=self.profile)
 
@@ -142,16 +148,29 @@ class Provider:
                 agent_attr = None
 
         if no_echo == 'false':
-            print('agent_method={}, agent_kwargs={}, agent_attr={} agent_resource_id={} agent_exceptions={} agent_wait_delay={}'.format(
-                agent_method, agent_kwargs, agent_attr, agent_resource_id, agent_exceptions, agent_wait_delay
-            ))
+            print(
+                'agent_method={}, agent_kwargs={}, agent_attr={} agent_resource_id={} agent_exceptions={} agent_wait_delay={}'.format(
+                    agent_method,
+                    agent_kwargs,
+                    agent_attr,
+                    agent_resource_id,
+                    agent_exceptions,
+                    agent_wait_delay
+                ),
+                file=sys.stderr
+            )
 
         if waiter:
             if agent_exceptions:
                 try:
                     waiter.wait(**agent_kwargs)
                 except tuple(agent_exceptions) as e:
-                    print('passing exception={}'.format(repr(e)))
+                    print(
+                        'passing exception={}'.format(
+                            repr(e)
+                        ),
+                        file=sys.stderr
+                    )
                     if self.verbose: print_exc()
             else:
                 waiter.wait(**agent_kwargs)
@@ -166,21 +185,29 @@ class Provider:
                     try:
                         response = self.get_response(agent_attr, **agent_kwargs)
                     except tuple(agent_exceptions) as e:
-                        print('passing exception={}'.format(repr(e)))
+                        print(
+                            'passing exception={}'.format(
+                                repr(e)
+                            ),
+                            file=sys.stderr
+                        )
                         if self.verbose: print_exc()
                 else:
                     response = self.get_response(agent_attr, **agent_kwargs)
 
                 match = jsonpath(response, agent_query_expr)
                 if no_echo == 'false':
-                    print('agent_query_expr={} agent_query_value={} match={} create={} update={} delete={}'.format(
-                        agent_query_expr,
-                        agent_query_value,
-                        match,
-                        create,
-                        update,
-                        delete
-                    ))
+                    print(
+                        'agent_query_expr={} agent_query_value={} match={} create={} update={} delete={}'.format(
+                            agent_query_expr,
+                            agent_query_value,
+                            match,
+                            create,
+                            update,
+                            delete
+                        ),
+                        file=sys.stderr
+                    )
                 if match is not None and response and (match == agent_query_value or not match): break
                 sleep(self.default_wait_secs)
 
@@ -249,24 +276,40 @@ class Provider:
         if agent_attr:
             response = {}
             if no_echo == 'false':
-                print('agent_method={}, agent_kwargs={}, agent_attr={} agent_resource_id={} agent_exceptions={} agent_response_node={}'.format(
-                    agent_method, agent_kwargs, agent_attr, agent_resource_id, agent_exceptions, agent_response_node
-                ))
+                print(
+                    'agent_method={}, agent_kwargs={}, agent_attr={} agent_resource_id={} agent_exceptions={} agent_response_node={}'.format(
+                        agent_method,
+                        agent_kwargs,
+                        agent_attr,
+                        agent_resource_id,
+                        agent_exceptions,
+                        agent_response_node
+                    ),
+                    file=sys.stderr
+                )
             if agent_exceptions:
                 try:
                     response = self.get_response(agent_attr, **agent_kwargs)
                 except tuple(agent_exceptions) as e:
-                    print('passing exception={}'.format(repr(e)))
+                    print(
+                        'passing exception={}'.format(
+                            repr(e)
+                        ),
+                        file=sys.stderr
+                    )
                     if self.verbose: print_exc()
             else:
                 response = self.get_response(agent_attr, **agent_kwargs)
             if no_echo == 'false':
-                print('response={} create={} update={} delete={}'.format(
-                    response,
-                    create,
-                    update,
-                    delete
-                ))
+                print(
+                    'response={} create={} update={} delete={}'.format(
+                        response,
+                        create,
+                        update,
+                        delete
+                    ),
+                    file=sys.stderr
+                )
 
             # wait
             self.wait_event(
@@ -308,16 +351,22 @@ class Provider:
                         PhysicalResourceId = str(uuid4())
             if create:
                 if no_echo == 'false':
-                    print('PhysicalResourceId={} responseData={}'.format(
-                        PhysicalResourceId,
-                        responseData
-                    ))
+                    print(
+                        'PhysicalResourceId={} responseData={}'.format(
+                            PhysicalResourceId,
+                            responseData
+                        ),
+                        file=sys.stderr
+                    )
                 return (PhysicalResourceId, responseData)
             else:
-                print('PhysicalResourceId={} responseData={}'.format(
-                    event['PhysicalResourceId'],
-                    responseData
-                ))
+                print(
+                    'PhysicalResourceId={} responseData={}'.format(
+                        event['PhysicalResourceId'],
+                        responseData
+                    ),
+                    file=sys.stderr
+                )
                 return responseData
         return {}
 
@@ -357,9 +406,16 @@ class Provider:
             agent_attr = None
 
         if no_echo == 'false':
-            print('agent_kwargs={}, agent_query_expr={}, agent_attr={} agent_resource_id={} agent_property={}'.format(
-                agent_kwargs, agent_query_expr, agent_attr, agent_resource_id, agent_property
-            ))
+            print(
+                'agent_kwargs={}, agent_query_expr={}, agent_attr={} agent_resource_id={} agent_property={}'.format(
+                    agent_kwargs,
+                    agent_query_expr,
+                    agent_attr,
+                    agent_resource_id,
+                    agent_property
+                ),
+                file=sys.stderr
+            )
         assert agent_attr and agent_resource_id and agent_query_expr and agent_property
         resource = self.get_response(agent_attr, **agent_kwargs)
         if agent_property in dir(resource):
@@ -368,7 +424,13 @@ class Provider:
                 'resource.{}'.format(agent_property)
             )
         match = jsonpath(response, agent_query_expr)
-        if no_echo == 'false': print('response={} match={}'.format(response, match))
+        if no_echo == 'false': print(
+            'response={} match={}'.format(
+                response,
+                match
+            ),
+            file=sys.stderr
+        )
         try:
             assert match
             responseData[agent_resource_id] = ','.join(match)
@@ -389,10 +451,13 @@ class Provider:
         else:
             no_echo = False
         try:
-            if not no_echo: print('event: {}, context: {}'.format(
-                json.dumps(event),
-                context
-            ))
+            if not no_echo: print(
+                'event: {}, context: {}'.format(
+                    json.dumps(event),
+                    context
+                ),
+                file=sys.stderr
+            )
         except:
             pass
 
@@ -409,20 +474,26 @@ class Provider:
                 RoleArn=RoleArn,
                 RoleSessionName=str(uuid4())
             )
-            if not no_echo: print('response={}'.format(response))
+            if not no_echo: print(
+                'response={}'.format(response),
+                file=sys.stderr
+            )
             kwargs['aws_access_key_id'] = response['Credentials']['AccessKeyId']
             kwargs['aws_secret_access_key'] = response['Credentials']['SecretAccessKey']
             kwargs['aws_session_token'] = response['Credentials']['SessionToken']
-            if not no_echo: print('get_caller_identity={}'.format(
-                client.get_caller_identity()
-            ))
+            if not no_echo: print(
+                'get_caller_identity={}'.format(
+                    client.get_caller_identity()
+                ),
+                file=sys.stderr
+            )
         except:
             if not self.profile:
                 kwargs['aws_access_key_id'] = os.getenv('AWS_ACCESS_KEY_ID')
                 kwargs['aws_secret_access_key'] = os.getenv('AWS_SECRET_ACCESS_KEY')
                 kwargs['aws_session_token'] = os.getenv('AWS_SESSION_TOKEN')
 
-        if not no_echo: print('kwargs={}'.format(kwargs))
+        if not no_echo: print('kwargs={}'.format(kwargs), file=sys.stderr)
 
         responseData = {}
 

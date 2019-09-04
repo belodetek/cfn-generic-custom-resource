@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import os
+import sys
 import re
 import random
 import boto3
@@ -12,7 +13,10 @@ from datetime import datetime
 class ACM_PCA:
     def __init__(self, *args, **kwargs):
         self.verbose = bool(int(os.getenv('VERBOSE', 0)))
-        if self.verbose: print('args: {}, kwargs: {}'.format(args, kwargs))
+        if self.verbose: print(
+            'args: {}, kwargs: {}'.format(args, kwargs),
+            file=sys.stderr
+        )
 
 
     def get_private_key_pem(self, param):
@@ -49,7 +53,10 @@ class ACM_PCA:
 
 
     def issue_certificate(self, *args, **kwargs):
-        if self.verbose: print('args: {}, kwargs: {}'.format(args, kwargs))
+        if self.verbose: print(
+            'args: {}, kwargs: {}'.format(args, kwargs),
+            file=sys.stderr
+        )
         client = boto3.client('acm-pca')
         return client.issue_certificate(
             CertificateAuthorityArn=kwargs['CertificateAuthorityArn'],
@@ -64,7 +71,10 @@ class ACM_PCA:
 
 
     def sign_csr(self, *args, **kwargs):
-        if self.verbose: print('args: {}, kwargs: {}'.format(args, kwargs))
+        if self.verbose: print(
+            'args: {}, kwargs: {}'.format(args, kwargs),
+            file=sys.stderr
+        )
         private_key = self.load_private_key(
             self.get_private_key_pem(kwargs['PrivateKey'])
         )
@@ -90,7 +100,7 @@ class ACM_PCA:
             )
 
         cert = crypto.X509()
-        cert.set_version(2)
+        cert.set_version(3)
         cert.set_serial_number(random.randint(50000000,100000000))
         cert.set_subject(csr.get_subject())
         cert.set_pubkey(csr.get_pubkey())
@@ -110,7 +120,10 @@ class ACM_PCA:
 
 
     def import_certificate_authority_certificate(self, *args, **kwargs):
-        if self.verbose: print('args: {}, kwargs: {}'.format(args, kwargs))
+        if self.verbose: print(
+            'args: {}, kwargs: {}'.format(args, kwargs),
+            file=sys.stderr
+        )
         client = boto3.client('acm-pca')
         params = {
             'CertificateAuthorityArn': kwargs['CertificateAuthorityArn'],

@@ -11,6 +11,7 @@ except ImportError:
     import requests
 
 import json
+import sys
 
 SUCCESS = 'SUCCESS'
 FAILED = 'FAILED'
@@ -29,10 +30,13 @@ def send(event, context, responseStatus, responseData=None, physicalResourceId=N
             )
             assert response_size <= 4096, 'response > 4k'
         except Exception as e:
-            print('response: length={} error={}'.format(
-                response_size,
-                repr(e)
-            ))
+            print(
+                'response: length={} error={}'.format(
+                    response_size,
+                    repr(e)
+                ),
+                file=sys.stderr
+            )
             responseData = None
 
     responseUrl = event['ResponseURL']
@@ -60,8 +64,13 @@ def send(event, context, responseStatus, responseData=None, physicalResourceId=N
                 data=json_responseBody,
                 headers=headers
             )
-            print("Status code: " + response.reason)
+            print('Status code: {}'.format(response.reason), file=sys.stderr)
         except Exception as e:
-            print("send(..) failed executing requests.put(..): " + str(e))
+            print(
+                'send(..) failed executing requests.put(..): {}'.format(
+                    str(e)
+                ),
+                file=sys.stderr
+            )
     else:
         print(json_responseBody)
