@@ -140,4 +140,4 @@ class ACM_PCA:
             params['CertificateChain'] = kwargs['CertificateChain'].encode()
         except:
             pass
-        return client.import_certificate_authority_certificate(params)
+        return client.import_certificate_authority_certificate(**params)
