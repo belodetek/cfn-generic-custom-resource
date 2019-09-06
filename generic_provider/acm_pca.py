@@ -112,11 +112,32 @@ class ACM_PCA:
         cert.set_pubkey(csr.get_pubkey())
         cert.add_extensions([
             crypto.X509Extension(
-                'basicConstraints'.encode(),
+                b'basicConstraints',
                 False,
-                'critical,CA:TRUE'.encode(),
+                b'critical,CA:TRUE'
+            ),
+            crypto.X509Extension(
+                b'subjectKeyIdentifier',
+                False,
+                b'hash',
+                subject=cert
+            ),
+            crypto.X509Extension(
+                b'keyUsage',
+                False,
+                b'critical, digitalSignature, cRLSign, keyCertSign'
             )
         ])
+
+        cert.add_extensions([
+            crypto.X509Extension(
+                b'authorityKeyIdentifier',
+                False,
+                b'keyid:always,issuer',
+                issuer=cert
+            )
+        ])
+
         cert.gmtime_adj_notBefore(0)
         cert.gmtime_adj_notAfter(kwargs['ValidityInSeconds'])
         cert.sign(private_key, kwargs['Digest'])
