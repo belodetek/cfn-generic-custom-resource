@@ -410,7 +410,7 @@ aws s3api put-bucket-policy\
 
 
 ### ACM
-> [ACM](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/s3.html) API reference
+> [ACM](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/acm.html) API reference
 
 #### request_certificate
 > mock CloudFormation request to [request_certificate](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/acm.html#ACM.Client.request_certificate) in a different account and/or region (e.g. for CloudFront)
@@ -465,8 +465,13 @@ aws s3api put-bucket-policy\
     popd
 
 
+### ACM-PCA
+> [ACM-PCA](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/acm-pca.html) API reference
+
 #### create_certificate_authority
 > mock CloudFormation request to [create_certificate_authority](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/acm-pca.html#ACMPCA.Client.create_certificate_authority)
+
+(⚠️ ensure to clean-up the CA resources to avoid $400/month surprise on your next AWS bill)
 
     pushd generic_provider
     echo "{

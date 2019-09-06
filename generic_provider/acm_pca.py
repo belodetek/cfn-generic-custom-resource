@@ -8,6 +8,7 @@ import boto3
 from OpenSSL import crypto
 from OpenSSL import SSL
 from datetime import datetime
+from base64 import b64decode
 
 
 class ACM_PCA:
@@ -79,7 +80,10 @@ class ACM_PCA:
             self.get_private_key_pem(kwargs['PrivateKey'])
         )
 
-        csr_pem = kwargs['Csr']
+        try:
+            csr_pem = b64decode(kwargs['Csr']).decode()
+        except:
+            csr_pem = kwargs['Csr']
         try:
             csr_payload = re.search(
                 '-----BEGIN CERTIFICATE REQUEST-----(.*)-----END CERTIFICATE REQUEST-----',
@@ -89,15 +93,17 @@ class ACM_PCA:
             assert csr_payload
             csr_formatted = '{}{}{}'.format(
                 '-----BEGIN CERTIFICATE REQUEST-----',
-                csr_payload.group(1).replace(' ', '\n'),
+                csr_payload.group(1).replace(' ', '\n').replace('\\n', '\n'),
                 '-----END CERTIFICATE REQUEST-----'
             )
             csr_pem = csr_formatted
         except:
-            csr = crypto.load_certificate_request(
-                crypto.FILETYPE_PEM,
-                csr_pem
-            )
+            pass
+
+        csr = crypto.load_certificate_request(
+            crypto.FILETYPE_PEM,
+            csr_pem
+        )
 
         cert = crypto.X509()
         cert.set_version(3)
