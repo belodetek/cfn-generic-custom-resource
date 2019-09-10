@@ -12,6 +12,8 @@ from base64 import b64decode
 
 
 class ACM_PCA:
+    authorityKeyIdentifier = False
+
     def __init__(self, *args, **kwargs):
         self.verbose = bool(int(os.getenv('VERBOSE', 0)))
         if self.verbose: print(
@@ -109,17 +111,26 @@ class ACM_PCA:
             )
         ])
 
-##        ca_cert.add_extensions([
-##            crypto.X509Extension(
-##                b'authorityKeyIdentifier',
-##                False,
-##                b'keyid:always,issuer',
-##                issuer=ca_cert
-##            )
-##        ])
+        if self.authorityKeyIdentifier:
+            ca_cert.add_extensions([
+                crypto.X509Extension(
+                    b'authorityKeyIdentifier',
+                    False,
+                    b'keyid:always,issuer',
+                    issuer=ca_cert
+                )
+            ])
 
         ca_cert.set_pubkey(private_key)
         ca_cert.sign(private_key, kwargs['Digest'])
+
+        if self.verbose: print(
+            'ca_cert: {}'.format(
+                crypto.dump_certificate(crypto.FILETYPE_TEXT, ca_cert).decode()
+            ),
+            file=sys.stderr
+        )
+
         return {
             'Certificate': crypto.dump_certificate(crypto.FILETYPE_PEM, ca_cert).decode()
         }
@@ -159,6 +170,13 @@ class ACM_PCA:
             csr_pem
         )
 
+        if self.verbose: print(
+            'csr: {}'.format(
+                crypto.dump_certificate_request(crypto.FILETYPE_TEXT, csr).decode()
+            ),
+            file=sys.stderr
+        )
+
         try:
             cert_pem = b64decode(kwargs['CACert']).decode()
         except:
@@ -166,6 +184,13 @@ class ACM_PCA:
         ca_cert = crypto.load_certificate(
             crypto.FILETYPE_PEM,
             cert_pem
+        )
+
+        if self.verbose: print(
+            'ca_cert: {}'.format(
+                crypto.dump_certificate(crypto.FILETYPE_TEXT, ca_cert).decode()
+            ),
+            file=sys.stderr
         )
 
         cert = crypto.X509()
@@ -194,18 +219,27 @@ class ACM_PCA:
             )
         ])
 
-##        cert.add_extensions([
-##            crypto.X509Extension(
-##                b'authorityKeyIdentifier',
-##                False,
-##                b'keyid:always,issuer',
-##                issuer=ca_cert
-##            )
-##        ])
+        if self.authorityKeyIdentifier:
+            cert.add_extensions([
+                crypto.X509Extension(
+                    b'authorityKeyIdentifier',
+                    False,
+                    b'keyid:always,issuer',
+                    issuer=ca_cert
+                )
+            ])
 
         cert.gmtime_adj_notBefore(0)
         cert.gmtime_adj_notAfter(int(kwargs['ValidityInSeconds']))
         cert.sign(private_key, kwargs['Digest'])
+
+        if self.verbose: print(
+            'cert: {}'.format(
+                crypto.dump_certificate(crypto.FILETYPE_TEXT, cert).decode()
+            ),
+            file=sys.stderr
+        )
+
         return {
             'Certificate': crypto.dump_certificate(crypto.FILETYPE_PEM, cert).decode()
         }
@@ -217,13 +251,44 @@ class ACM_PCA:
             file=sys.stderr
         )
         client = boto3.client('acm-pca')
+
         params = {
-            'CertificateAuthorityArn': kwargs['CertificateAuthorityArn'],
-            'Certificate': kwargs['Certificate'].replace('\\n', '\n').encode()
+            'CertificateAuthorityArn': kwargs['CertificateAuthorityArn']
         }
         try:
+            cert_pem = b64decode(kwargs['Certificate'])
+        except:
+            cert_pem = kwargs['Certificate'].encode()
+        cert = crypto.load_certificate(
+            crypto.FILETYPE_PEM,
+            cert_pem
+        )
+        if self.verbose: print(
+            'cert: {}'.format(
+                crypto.dump_certificate(crypto.FILETYPE_TEXT, cert).decode()
+            ),
+            file=sys.stderr
+        )
+        params['Certificate'] = cert_pem
+
+        try:
             assert 'CertificateChain' in kwargs
-            params['CertificateChain'] = kwargs['CertificateChain'].replace('\\n', '\n').encode()
+            try:
+                chain_pem = b64decode(kwargs['CertificateChain'])
+            except:
+                chain_pem = kwargs['CertificateChain'].encode()
+            params['CertificateChain'] = chain_pem
+            chain = crypto.load_certificate(
+                crypto.FILETYPE_PEM,
+                chain_pem
+            )
+            if self.verbose: print(
+                'chain: {}'.format(
+                    crypto.dump_certificate(crypto.FILETYPE_TEXT, chain).decode()
+                ),
+                file=sys.stderr
+            )
         except:
             pass
+
         return client.import_certificate_authority_certificate(**params)
