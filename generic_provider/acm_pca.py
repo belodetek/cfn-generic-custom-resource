@@ -84,7 +84,7 @@ class ACM_PCA:
         ca_cert.get_subject().C = kwargs['Country']
         ca_cert.get_subject().O = kwargs['Org']
         ca_cert.get_subject().OU = kwargs['OrgUnit']
-        ca_cert.get_subject().CN = kwargs['CanonicalName']
+        ca_cert.get_subject().CN = kwargs['CommonName']
         ca_cert.set_serial_number(int(kwargs['Serial']))
         ca_cert.gmtime_adj_notBefore(0)
         ca_cert.gmtime_adj_notAfter(int(kwargs['ValidityInSeconds']))
