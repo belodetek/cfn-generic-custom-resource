@@ -195,7 +195,10 @@ class ACM_PCA:
 
         cert = crypto.X509()
         cert.set_version(2)
-        cert.set_serial_number(random.randint(50000000,100000000))
+        cert.set_serial_number(random.randint(
+            1000000000000000000000000000000000000,
+            9999999999999999999999999999999999999
+        ))
         cert.set_issuer(ca_cert.get_subject())
         cert.set_subject(csr.get_subject())
         cert.set_pubkey(csr.get_pubkey())
