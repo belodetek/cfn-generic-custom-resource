@@ -159,9 +159,13 @@ class ACM_PCA:
             csr_pem
         )
 
+        try:
+            cert_pem = b64decode(kwargs['CACert']).decode()
+        except:
+            cert_pem = kwargs['CACert']
         ca_cert = crypto.load_certificate(
             crypto.FILETYPE_PEM,
-            kwargs['CACert'].replace('\\n', '\n')
+            cert_pem
         )
 
         cert = crypto.X509()
