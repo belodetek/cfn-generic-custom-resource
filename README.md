@@ -588,7 +588,8 @@ aws s3api put-bucket-policy\
           \"AgentCreateArgs\": {
               \"CertificateAuthorityArn\": \"arn:aws:acm-pca:${AWS_REGION}:$(aws sts get-caller-identity | jq -r '.Account'):certificate-authority/$(uuid)\",
           }
-      }" | jq -c | VERBOSE=1 ./generic_provider.py | jq -r .Data.Csr > csr.pem && openssl x509 -in csr.pem -text -noout
+        }
+      }" | jq -c | VERBOSE=1 ./generic_provider.py | jq -r .Data.Csr > csr.pem && openssl req -in csr.pem -text -noout
       popd
 
 
