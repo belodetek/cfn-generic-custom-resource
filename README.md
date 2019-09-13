@@ -490,6 +490,9 @@ aws s3api put-bucket-policy\
           \"AgentDeleteMethod\": \"delete_certificate_authority\",
           \"AgentWaitQueryExpr\": \"$.CertificateAuthorityArn\",
           \"AgentWaitResourceId\": \"CertificateAuthorityArn\",
+          \"AgentWaitDeleteExceptions\": [
+            \"botocore.exceptions.WaiterError\"
+          ],
           \"AgentResourceId\": \"CertificateAuthorityArn\",
           \"AgentCreateArgs\": {
               \"CertificateAuthorityConfiguration\": {
