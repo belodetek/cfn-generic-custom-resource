@@ -289,7 +289,15 @@ class ACM_PCA:
                 ),
                 file=sys.stderr
             )
-            params['CertificateChain'] = cert_pem + ca_pem
+            cert_chain = cert_pem + ca_pem
+            params['CertificateChain'] = cert_chain
+            if self.verbose: print(
+                'chain_pem: {} cert_chain: {}'.format(
+                    cert_chain,
+                    crypto.dump_certificate(crypto.FILETYPE_TEXT, cert_chain).decode()
+                ),
+                file=sys.stderr
+            )
         except:
             pass
 

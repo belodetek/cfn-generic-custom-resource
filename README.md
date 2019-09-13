@@ -537,6 +537,61 @@ aws s3api put-bucket-policy\
     popd
 
 
+#### create_self_signed_cert
+> mock CloudFormation request to [create_self_signed_cert](https://github.com/ab77/cfn-generic-custom-resource/blob/master/generic_provider/acm_pca.py)
+
+    pushd generic_provider
+    echo "{
+      \"RequestType\": \"Create\",
+      \"ResponseURL\": \"https://cloudformation-custom-resource-response-${AWS_REGION}.s3.amazonaws.com/\",
+      \"StackId\": \"arn:aws:cloudformation:${AWS_REGION}:$(aws sts get-caller-identity | jq -r '.Account'):stack/MockStack/$(uuid)\",
+      \"RequestId\": \"$(uuid)\",
+      \"ResourceType\": \"Custom::MockResource\",
+      \"LogicalResourceId\": \"MockResource\",
+      \"PhysicalResourceId\": \"$(uuid)\",
+      \"ResourceProperties\": {
+          \"AgentType\": \"custom\",
+          \"AgentService\": \"acm_pca\",
+          \"AgentCreateMethod\": \"create_self_signed_cert\",
+          \"AgentCreateArgs\": {
+              \"PrivateKey\": \"/rsa-private-keys/acm-pca/key_pair\",
+              \"Country\": \"US\",
+              \"Org\": \"foo\",
+              \"OrgUnit\": \"bar\",
+              \"CommonName\": \"foo-bar\",
+              \"Serial\": 1,
+              \"ValidityInSeconds\": 315360000,
+              \"Digest\": \"sha256\"
+          }
+      }
+    }" | jq -c | VERBOSE=1 ./generic_provider.py | jq -r .Data.Certificate > ca.crt\
+    && openssl x509 -in ca.crt -text -noout
+    popd
+
+
+#### get_certificate_authority_csr
+> mock CloudFormation request to [get_certificate_authority_csr](https://github.com/ab77/cfn-generic-custom-resource/blob/master/generic_provider/acm_pca.py)
+
+    pushd generic_provider
+    echo "{
+      \"RequestType\": \"Create\",
+      \"ResponseURL\": \"https://cloudformation-custom-resource-response-${AWS_REGION}.s3.amazonaws.com/\",
+      \"StackId\": \"arn:aws:cloudformation:${AWS_REGION}:$(aws sts get-caller-identity | jq -r '.Account'):stack/MockStack/$(uuid)\",
+      \"RequestId\": \"$(uuid)\",
+      \"ResourceType\": \"Custom::MockResource\",
+      \"LogicalResourceId\": \"MockResource\",
+      \"PhysicalResourceId\": \"$(uuid)\",
+      \"ResourceProperties\": {
+          \"AgentType\": \"client\",
+          \"AgentService\": \"acm-pca\",
+          \"AgentCreateMethod\": \"get_certificate_authority_csr\",
+          \"AgentCreateArgs\": {
+              \"CertificateAuthorityArn\": \"arn:aws:acm-pca:${AWS_REGION}:$(aws sts get-caller-identity | jq -r '.Account'):certificate-authority/$(uuid)\",
+          }
+      }" | jq -c | VERBOSE=1 ./generic_provider.py | jq -r .Data.Csr > csr.pem && openssl x509 -in csr.pem -text -noout
+      popd
+
+
 #### sign_csr
 > mock CloudFormation request to [sign_csr](https://github.com/ab77/cfn-generic-custom-resource/blob/master/generic_provider/acm_pca.py) request
 
@@ -546,9 +601,6 @@ aws s3api put-bucket-policy\
     aws ssm put-parameter --type SecureString\
       --name '/rsa-private-keys/acm-pca/key_pair'\
       --value ${signing_key}
-
-    # generate CSR
-    openssl req -new -newkey rsa:2048 -nodes -keyout ca.key -out ca.csr
 
 
     pushd generic_provider
@@ -566,20 +618,17 @@ aws s3api put-bucket-policy\
           \"AgentCreateMethod\": \"sign_csr\",
           \"AgentCreateArgs\": {
               \"PrivateKey\": \"/rsa-private-keys/acm-pca/key_pair",
-              \"Csr\": \"$(cat ca.csr  | sed -E ':a;N;$!ba;s/\r{0,1}\n/\\n/g')\",
-              \"ValidityInSeconds\": 10365246060,
+              \"Csr\": \"$(cat csr.pem | base64)\",
+              \"ValidityInSeconds\": 315360000,
               \"Digest\": \"sha256\"
           }
       }
     }" | jq -c | VERBOSE=1 ./generic_provider.py > test.crt && openssl x509 -in test.crt -text -noout
-
     popd
 
 
 #### import_certificate_authority_certificate
 > mock CloudFormation request to [import_certificate_authority_certificate](https://github.com/ab77/cfn-generic-custom-resource/blob/master/generic_provider/acm_pca.py)
-
-    certificate_pem='-----BEGIN CERTIFICATE-----\n....'
 
     pushd generic_provider
     echo "{
@@ -596,7 +645,8 @@ aws s3api put-bucket-policy\
           \"AgentCreateMethod\": \"import_certificate_authority_certificate\",
           \"AgentCreateArgs\": {
               \"CertificateAuthorityArn\": \"arn:aws:acm-pca:${AWS_REGION}:$(aws sts get-caller-identity | jq -r '.Account'):certificate-authority/$(uuid)\",
-              \"Certificate\": \"${certificate_pem}\"
+              \"Certificate\": \"$(cat test.crt | base64)\"
+              \"CACertificate\": \"$(cat csr.pem | base64)\"
           }
       }
     }" | jq -c | VERBOSE=1 ./generic_provider.py
