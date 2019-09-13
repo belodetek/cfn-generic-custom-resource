@@ -510,7 +510,7 @@ aws s3api put-bucket-policy\
                       \"S3BucketName\": \"foo-bar\"
                   }
               },
-              \"CertificateAuthorityType\": \"ROOT\",
+              \"CertificateAuthorityType\": \"SUBORDINATE\",
               \"Tags\": [
                   {
                       \"Key\": \"Name\",

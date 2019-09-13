@@ -275,23 +275,19 @@ class ACM_PCA:
         params['Certificate'] = cert_pem
 
         try:
-            assert 'CertificateChain' in kwargs
-            try:
-                chain_pem = b64decode(kwargs['CertificateChain'])
-            except:
-                chain_pem = kwargs['CertificateChain'].encode()
-            params['CertificateChain'] = chain_pem
-            chain = crypto.load_certificate(
-                crypto.FILETYPE_PEM,
-                chain_pem
-            )
-            if self.verbose: print(
-                'chain: {}'.format(
-                    crypto.dump_certificate(crypto.FILETYPE_TEXT, chain).decode()
-                ),
-                file=sys.stderr
-            )
+            ca_pem = b64decode(kwargs['CACertificate'])
         except:
-            pass
+            ca_pem = kwargs['CACertificate'].encode()
+        ca_cert = crypto.load_certificate(
+            crypto.FILETYPE_PEM,
+            ca_pem
+        )
+        if self.verbose: print(
+            'ca_cert: {}'.format(
+                crypto.dump_certificate(crypto.FILETYPE_TEXT, ca_cert).decode()
+            ),
+            file=sys.stderr
+        )
+        params['CertificateChain'] = cert_pem + ca_pem
 
         return client.import_certificate_authority_certificate(**params)
