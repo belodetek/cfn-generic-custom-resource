@@ -1,0 +1,306 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'ACM-PCA template'
+
+
+Metadata:
+  'AWS::CloudFormation::Interface':
+    ParameterGroups:
+    - Label:
+        default: 'Common parameters'
+      Parameters:
+      - NotificationTopic
+      - TimeoutInMinutes
+    - Label:
+        default: 'Route53 parameters'
+      Parameters:
+      - DomainWithoutDot
+    - Label:
+        default: 'CloudFront parameters'
+      Parameters:
+      - AlternativeName
+    - Label:
+        default: 'S3 parameters'
+      Parameters:
+      - S3DeletionPolicy
+      - LogsRetentionInDays
+    - Label:
+        default: 'Nested templates'
+      Parameters:
+      - IAMTemplate
+      - R53Template
+      - S3Template
+      - ACMTemplate
+      - PCATemplate
+      - CFTemplate
+
+
+Parameters:
+  AlternativeName:
+    Description: 'Specify hostname for CloudFront Alternate Domain Names (CNAMEs) field.'
+    Type: String
+    Default: 'crl'
+  DomainWithoutDot:
+    Description: 'Specify DNS domain for the CRL without trailing dot.'
+    Type: String
+    Default: 'belodetek.io'
+  S3DeletionPolicy:
+    Description: 'Specify S3 deletion policy.'
+    Default: 'Retain'
+    Type: String
+    AllowedValues:
+    - 'Delete'
+    - 'Retain'
+  LogsRetentionInDays:
+    Description: 'Specify the number of days you want to retain log events.'
+    Type: Number
+    Default: 7
+    AllowedValues: [1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365, 400, 545, 731, 1827, 3653]
+  NotificationTopic:
+    Description: 'Specify optional SNS topic for initial CloudFormation event notifications.'
+    Type: String
+    Default: ''
+  TimeoutInMinutes:
+    Description: 'Specify optional timeout in minutes for stack creation.'
+    Type: Number
+    Default: 60
+  S3Template:
+    Description: 'Nested template containing S3 resources.'
+    Type: String
+    Default: 'true'
+    AllowedValues:
+    - 'true'
+    - 'false'
+  PCATemplate:
+    Description: 'Nested template containing ACM-PCA resources.'
+    Type: String
+    Default: 'false'
+    AllowedValues:
+    - 'true'
+    - 'false'
+  R53Template:
+    Description: 'Nested template containing R53 resources.'
+    Type: String
+    Default: 'true'
+    AllowedValues:
+    - 'true'
+    - 'false'
+  ACMTemplate:
+    Description: 'Nested template containing ACM resources.'
+    Type: String
+    Default: 'true'
+    AllowedValues:
+    - 'true'
+    - 'false'
+  CFTemplate:
+    Description: 'Nested template containing CloudFront resources.'
+    Type: String
+    Default: 'true'
+    AllowedValues:
+    - 'true'
+    - 'false'
+  IAMTemplate:
+    Description: 'Nested template containing IAM resources.'
+    Type: String
+    Default: 'true'
+    AllowedValues:
+    - 'true'
+    - 'false'
+
+
+Conditions:
+  HasNotifySNS: !Not [ !Equals [ '', !Ref 'NotificationTopic' ]]
+  HasS3: !Equals [ 'true', !Ref 'S3Template' ]
+  HasIAM: !Equals [ 'true', !Ref 'IAMTemplate' ]
+  HasCF: !And
+  - !Equals [ 'true', !Ref 'CFTemplate' ]
+  - !Condition HasS3
+  HasACM: !And
+  - !Equals [ 'true', !Ref 'ACMTemplate' ]
+  - !Condition HasR53
+  HasR53: !Equals [ 'true', !Ref 'R53Template' ]
+  HasPCA: !And
+  - !Equals [ 'true', !Ref 'PCATemplate' ]
+  - !Condition HasCF
+  - !Condition HasIAM
+
+
+Resources:
+  LambdaStack:
+    Type: 'AWS::CloudFormation::Stack'
+    Properties:
+      TemplateURL: ./lambda.yml
+      Parameters:
+        NameTag: !Sub '${AWS::StackName}'
+      NotificationARNs:
+      - !If [ HasNotifySNS, !Ref 'NotificationTopic', !Ref 'AWS::NoValue' ]
+      TimeoutInMinutes: !Ref 'TimeoutInMinutes'
+      Tags:
+      - Key: Name
+        Value: !Sub '${AWS::StackName}'
+
+  SecretsProviderStack:
+    Type: 'AWS::CloudFormation::Stack'
+    Properties:
+      TemplateURL: ./cfn-secret-provider/cloudformation/cfn-resource-provider.yaml
+      NotificationARNs:
+      - !If [ HasNotifySNS, !Ref 'NotificationTopic', !Ref 'AWS::NoValue' ]
+      TimeoutInMinutes: !Sub '${TimeoutInMinutes}'
+      Tags:
+      - Key: Name
+        Value: !Sub '${AWS::StackName}'
+
+  IAMStack:
+    Type: 'AWS::CloudFormation::Stack'
+    Condition: HasIAM
+    DependsOn:
+    - LambdaStack
+    - SecretsProviderStack
+    Properties:
+      TemplateURL: 'iam.yml'
+      Parameters:
+        NameTag: !Sub '${AWS::StackName}'
+      NotificationARNs:
+      - !If [ HasNotifySNS, !Ref 'NotificationTopic', !Ref 'AWS::NoValue' ]
+      TimeoutInMinutes: !Sub '${TimeoutInMinutes}'
+      Tags:
+      - Key: Name
+        Value: !Sub '${AWS::StackName}'
+
+  S3Stack:
+    Type: 'AWS::CloudFormation::Stack'
+    Condition: HasS3
+    Properties:
+      TemplateURL: 's3.yml'
+      Parameters:
+        NameTag: !Sub '${AWS::StackName}'
+        LogsRetentionInDays: !Sub '${LogsRetentionInDays}'
+        S3DeletionPolicy: !Sub '${S3DeletionPolicy}'
+      NotificationARNs:
+      - !If [ HasNotifySNS, !Ref 'NotificationTopic', !Ref 'AWS::NoValue' ]
+      TimeoutInMinutes: !Sub '${TimeoutInMinutes}'
+      Tags:
+      - Key: Name
+        Value: !Sub '${AWS::StackName}'
+
+  R53Stack:
+    Type: 'AWS::CloudFormation::Stack'
+    Condition: HasR53
+    DependsOn: LambdaStack
+    Properties:
+      TemplateURL: 'route53.yml'
+      Parameters:
+        NameTag: !Sub '${AWS::StackName}'
+        HostedZone: !Sub '${DomainWithoutDot}'
+      NotificationARNs:
+      - !If [ HasNotifySNS, !Ref 'NotificationTopic', !Ref 'AWS::NoValue' ]
+      TimeoutInMinutes: !Sub '${TimeoutInMinutes}'
+      Tags:
+      - Key: Name
+        Value: !Sub '${AWS::StackName}'
+
+  ACMStack:
+    Type: 'AWS::CloudFormation::Stack'
+    Condition: HasACM
+    DependsOn: LambdaStack
+    Properties:
+      TemplateURL: 'acm.yml'
+      Parameters:
+        NameTag: !Sub '${AWS::StackName}'
+        DomainName: !Sub '${R53Stack.Outputs.PublicDNSName}'
+        ValidationDomain: !Sub '${DomainWithoutDot}'
+        LowerCaseDomainWithDot: !Sub '${R53Stack.Outputs.LowerCaseDomainWithDot}'
+        AlternativeName: !Sub '${AlternativeName}'
+      NotificationARNs:
+      - !If [ HasNotifySNS, !Ref 'NotificationTopic', !Ref 'AWS::NoValue' ]
+      TimeoutInMinutes: !Sub '${TimeoutInMinutes}'
+      Tags:
+      - Key: Name
+        Value: !Sub '${AWS::StackName}'
+
+  CFStack:
+    Type: 'AWS::CloudFormation::Stack'
+    Condition: HasCF
+    Properties:
+      TemplateURL: 'cloudfront.yml'
+      Parameters:
+        NameTag: !Sub '${AWS::StackName}'
+        LogsBucket: !Sub '${S3Stack.Outputs.LogsBucketDomainName}'
+        DomainName: !Sub '${S3Stack.Outputs.BucketDomainName}'
+        Bucket: !Sub '${S3Stack.Outputs.Bucket}'
+        ACMCertificateArn: !If
+        - HasACM
+        - !Sub '${ACMStack.Outputs.SSLCertificateArn}'
+        - !Ref 'AWS::NoValue'
+        CustomDomain: !If
+        - HasACM
+        - !Sub '${ACMStack.Outputs.CustomDomain}'
+        - !Ref 'AWS::NoValue'
+        HostedZone: !If
+        - HasR53
+        - !Sub '${R53Stack.Outputs.HostedZonePublic}'
+        - !Ref 'AWS::NoValue'
+        AlternativeName: !Sub '${AlternativeName}'
+        DomainWithoutDot: !Sub '${DomainWithoutDot}'
+      NotificationARNs:
+      - !If [ HasNotifySNS, !Ref 'NotificationTopic', !Ref 'AWS::NoValue' ]
+      TimeoutInMinutes: !Sub '${TimeoutInMinutes}'
+      Tags:
+      - Key: Name
+        Value: !Sub '${AWS::StackName}'
+
+  PCAStack:
+    Type: 'AWS::CloudFormation::Stack'
+    Condition: HasPCA
+    DependsOn: IAMStack
+    Properties:
+      TemplateURL: 'pca.yml'
+      Parameters:
+        NameTag: !Sub '${AWS::StackName}'
+        Bucket: !Sub '${S3Stack.Outputs.Bucket}'
+        LogsRetentionInDays: !Sub '${LogsRetentionInDays}'
+        DomainWithoutDot: !Sub '${DomainWithoutDot}'
+        AlternativeName: !Sub '${AlternativeName}'
+      NotificationARNs:
+      - !If [ HasNotifySNS, !Ref 'NotificationTopic', !Ref 'AWS::NoValue' ]
+      TimeoutInMinutes: !Sub '${TimeoutInMinutes}'
+      Tags:
+      - Key: Name
+        Value: !Sub '${AWS::StackName}'
+
+
+Outputs:
+  StackName:
+    Value: !Ref 'AWS::StackName'
+    Export:
+      Name: !Sub 'StackName-${AWS::StackName}'
+  S3Stack:
+    Condition: HasS3
+    Value: !Sub '${S3Stack.Outputs.S3StackName}'
+    Export:
+      Name: !Sub 'S3StackName-${AWS::StackName}'
+  PCAStack:
+    Condition: HasPCA
+    Value: !Sub '${PCAStack.Outputs.PCAStackName}'
+    Export:
+      Name: !Sub 'PCAStackName-${AWS::StackName}'
+  ACMStack:
+    Condition: HasACM
+    Value: !Sub '${ACMStack.Outputs.ACMStackName}'
+    Export:
+      Name: !Sub 'ACMStackName-${AWS::StackName}'
+  CFStack:
+    Condition: HasCF
+    Value: !Sub '${CFStack.Outputs.CFStackName}'
+    Export:
+      Name: !Sub 'CFStackName-${AWS::StackName}'
+  R53Stack:
+    Condition: HasR53
+    Value: !Sub '${R53Stack.Outputs.R53StackName}'
+    Export:
+      Name: !Sub 'R53StackName-${AWS::StackName}'
+  IAMStack:
+    Condition: HasIAM
+    Value: !Sub '${IAMStack.Outputs.IAMStackName}'
+    Export:
+      Name: !Sub 'IAMStackName-${AWS::StackName}'

@@ -11,6 +11,7 @@
 * [Cognito IdP](#cognito-demo)
 * [VPC peering](#vpc-peering-demo)
 * [AWS Backup (EFS)](#aws-backup-efs)
+* [ACM Private CA](#acm-private-ca)
 
 
 ### mock requests
@@ -44,7 +45,8 @@ For more information, please read this blog [post](https://anton.belodedenko.me/
 
 ### init
 
-    git clone https://github.com/ab77/cfn-generic-custom-resource\
+    git clone --recurse-submodules --remote-submodules\
+      https://github.com/ab77/cfn-generic-custom-resource\
       && cd cfn-generic-custom-resource
 
 
@@ -62,6 +64,7 @@ For more information, please read this blog [post](https://anton.belodedenko.me/
       && pushd generic_provider\
       && python -m venv venv || python -m virtualenv venv\
       && . venv/bin/activate\
+      && make\
       && pip install --upgrade pip\
       && pip install --upgrade -r requirements.txt -t .\
       && popd
@@ -397,6 +400,50 @@ aws s3api put-bucket-policy\
       NameTag=${stack_name}\
       ResourceId=${resource_id}\
       ResourceName=${resource_name}\
+      --tags\
+      Name=${stack_name}\
+      Region=${AWS_REGION}\
+      Profile=${AWS_PROFILE}\
+      AccountId=$(aws sts get-caller-identity | jq -r '.Account'); popd
+
+
+
+### ACM Private CA
+> also see mock [examples](#acm-pca) below
+
+#### package assets
+
+    pushd acm-pca; for template in lambda main; do
+        aws cloudformation package\
+          --template-file ${template}-template.yaml\
+          --s3-bucket ${bucket}\
+          --output-template-file ${template}.yml
+    done; popd
+
+
+#### deploy stack
+> ⚠️ ensure to clean-up the CA resources to avoid $400/month surprise on your next AWS bill
+
+    stack_name='acm-pca'
+
+    # change to a domain you own with postmaster and hostmaster email addresses forwarded for ACM SSL certificate validation
+    domain_name='belodetek.io'
+
+
+    pushd acm-pca; aws cloudformation deploy\
+      --template-file main.yml\
+      --stack-name ${stack_name}\
+      --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM\
+      --parameter-overrides\
+      NameTag=${stack_name}\
+      DomainWithoutDot=${domain_name}\
+      S3Template=true\
+      IAMTemplate=true\
+      R53Template=true\
+      ACMTemplate=true\
+      CFTemplate=true\
+      IAMTemplate=true\
+      PCATemplate=true\
       --tags\
       Name=${stack_name}\
       Region=${AWS_REGION}\

@@ -1,0 +1,402 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Certificate Manager (ACM-PCA) resources'
+
+
+Parameters:
+  NameTag:
+    Type: String
+  LogsRetentionInDays:
+    Type: String
+  Bucket:
+    Type: String
+  DomainWithoutDot:
+    Type: String
+  AlternativeName:
+    Type: String
+  # TBC: import step can not be automated (at the time of writing)
+  RootCA:
+    Type: String
+    Default: 'false'
+  SignRootCSR:
+    Type: String
+    Default: 'false'
+  SubordinateCA:
+    Type: String
+    Default: 'true'
+  SignSubordinateCSR:
+    Type: String
+    Default: 'true'
+  ImportSubordinateCertificate:
+    Type: String
+    Default: 'true'
+
+
+Conditions:
+  HasRootCA: !Equals [ 'true', !Ref 'RootCA' ]
+  HasSubordinateCA: !Equals [ 'true', !Ref 'SubordinateCA' ]
+  HasRootCSR: !And
+  - !Equals [ 'true', !Ref 'SignRootCSR' ]
+  - !Condition HasRootCA
+  HasSubordinateCSR: !And
+  - !Equals [ 'true', !Ref 'SignSubordinateCSR' ]
+  - !Condition HasSubordinateCA
+  HasSubordinateImportCertificate: !And
+  - !Equals [ 'true', !Ref 'ImportSubordinateCertificate' ]
+  - !Condition HasSubordinateCA
+  - !Condition HasSubordinateCSR
+  HasBothCA: !And
+  - !Condition HasRootCSR
+  - !Condition HasSubordinateCSR
+
+
+Resources:
+  GenerateSelfSignedCertV1:
+    Type: 'Custom::GenerateSelfSignedCert'
+    Version: 1.0
+    Properties:
+      ServiceToken: !Sub 'arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:generic-custom-resource-provider'
+      Version: V1
+      # custom module: acm_pca.py
+      AgentService: acm_pca
+      AgentType: custom
+      AgentCreateMethod: create_self_signed_cert
+      AgentCreateArgs: !Sub |
+        {
+          "PrivateKey": "/rsa-private-keys/${NameTag}/key_pair",
+          "Country": "CA",
+          "Org": "belodetek",
+          "OrgUnit": "belodetek.io",
+          "CommonName": "belodetek.io Root CA R1",
+          "Serial": 1,
+          "ValidityInSeconds": 315360000,
+          "Digest": "sha256"
+        }
+
+  # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/acm-pca.html#ACMPCA.Client.create_certificate_authority
+  # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/acm-pca.html#ACMPCA.Client.update_certificate_authority
+  # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/acm-pca.html#ACMPCA.Client.delete_certificate_authority
+  PCARootR1:
+    Type: 'Custom::PCARootR1'
+    Condition: HasRootCA
+    Version: 1.0
+    Properties:
+      ServiceToken: !Sub 'arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:generic-custom-resource-provider'
+      Version: R1
+      AgentService: acm-pca
+      AgentType: client
+      AgentCreateMethod: create_certificate_authority
+      AgentUpdateMethod: update_certificate_authority
+      AgentDeleteMethod: delete_certificate_authority
+      AgentWaitMethod: certificate_authority_csr_created
+      AgentWaitQueryExpr: '$.CertificateAuthorityArn'
+      AgentWaitResourceId: CertificateAuthorityArn
+      AgentWaitDeleteExceptions:
+      - botocore.exceptions.WaiterError
+      AgentResourceId: CertificateAuthorityArn
+      AgentCreateArgs: !Sub |
+        {
+            "CertificateAuthorityConfiguration": {
+                "KeyAlgorithm": "RSA_2048",
+                "SigningAlgorithm": "SHA256WITHRSA",
+                "Subject": {
+                    "Country": "CA",
+                    "Organization": "belodetek",
+                    "OrganizationalUnit": "wbelodetek.io",
+                    "CommonName": "belodetek.io Root CA R1"
+                }
+            },
+            "RevocationConfiguration": {
+                "CrlConfiguration": {
+                    "Enabled": true,
+                    "ExpirationInDays": ${LogsRetentionInDays},
+                    "CustomCname": "${AlternativeName}.${DomainWithoutDot}",
+                    "S3BucketName": "${Bucket}"
+                }
+            },
+            "CertificateAuthorityType": "ROOT",
+            "Tags": [
+                {
+                    "Key": "Name",
+                    "Value": "${NameTag}"
+                }
+            ]
+        }
+      AgentUpdateArgs: !Sub |
+        {
+            "RevocationConfiguration": {
+                "CrlConfiguration": {
+                    "Enabled": true,
+                    "ExpirationInDays": ${LogsRetentionInDays},
+                    "CustomCname": "${AlternativeName}.${DomainWithoutDot}",
+                }
+            },
+            "Status": "ACTIVE"
+        }
+      AgentDeleteArgs: !Sub |
+        {
+            "PermanentDeletionTimeInDays": ${LogsRetentionInDays}
+        }
+
+  # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/acm-pca.html#ACMPCA.Client.get_certificate_authority_csr
+  CSRRootR1:
+    Type: 'Custom::CSRRootR1'
+    Condition: HasRootCA
+    Version: 1.0
+    Properties:
+      ServiceToken: !Sub 'arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:generic-custom-resource-provider'
+      Version: R1
+      AgentService: acm-pca
+      AgentType: client
+      AgentCreateMethod: get_certificate_authority_csr
+      AgentCreateArgs:
+        CertificateAuthorityArn: !Sub '${PCARootR1}'
+
+  SignCSRRootR1:
+    Type: 'Custom::SignCSRRootR1'
+    Condition: HasRootCSR
+    Version: 1.0
+    Properties:
+      ServiceToken: !Sub 'arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:generic-custom-resource-provider'
+      Version: R1
+      # custom module: acm_pca.py
+      AgentService: acm_pca
+      AgentType: custom
+      AgentCreateMethod: sign_csr
+      # base64 encode CSR to escape '\n' hell
+      AgentCreateArgs: !Join
+      - ''
+      - - !Sub '{ "PrivateKey": "/rsa-private-keys/${NameTag}/key_pair",'
+        - '"CACert": "'
+        - Fn::Base64:
+            !Sub '${GenerateSelfSignedCertV1.Certificate}'
+        - '",'
+        - '"Csr": "'
+        - Fn::Base64:
+            !Sub '${CSRRootR1.Csr}'
+        - '",'
+        - '"ValidityInSeconds": 315360000,'
+        - '"Digest": "sha256" }'
+
+#      AgentCreateArgs: !Sub |
+#        {
+#            "PrivateKey": "/rsa-private-keys/${NameTag}/key_pair",
+#            "SelfSignedCertificate": "${GenerateSelfSignedCertV1.Certificate}",
+#            "Csr": "${CSRRootR1.Csr}",
+#            "ValidityInSeconds": 315360000,
+#            "Digest": "sha256"
+#        }
+
+
+  # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/acm-pca.html#ACMPCA.Client.import_certificate_authority_certificate
+  # TBC: import step can not be automated (at the time of writing)
+  ImportRootCACertificateR1:
+    Type: 'Custom::ImportRootCACertificateR1'
+    Condition: HasRootCSR
+    Version: 1.0
+    Properties:
+      ServiceToken: !Sub 'arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:generic-custom-resource-provider'
+      Version: R1
+      # custom module: acm_pca.py (proxy method to handle bytes encoding)
+      AgentService: acm_pca
+      AgentType: custom
+      AgentCreateMethod: import_certificate_authority_certificate
+      AgentCreateArgs: !Join
+      - ''
+      - - !Sub '{ "CertificateAuthorityArn": "${PCARootR1}",'
+        - '"Certificate": "'
+        - Fn::Base64:
+            !Sub '${SignCSRRootR1.Certificate}'
+        - '"}'
+
+#      AgentCreateArgs:
+#        CertificateAuthorityArn: !Sub '${PCARootR1}'
+#        Certificate: !Sub '${SignCSRRootR1.Certificate}'
+#
+
+
+  PCASubordinateS1:
+    Type: 'Custom::PCASubordinateS1'
+    Condition: HasSubordinateCA
+    Version: 1.0
+    Properties:
+      ServiceToken: !Sub 'arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:generic-custom-resource-provider'
+      Version: S1
+      AgentService: acm-pca
+      AgentType: client
+      AgentCreateMethod: create_certificate_authority
+      AgentUpdateMethod: update_certificate_authority
+      AgentDeleteMethod: delete_certificate_authority
+      AgentWaitMethod: certificate_authority_csr_created
+      AgentWaitQueryExpr: '$.CertificateAuthorityArn'
+      AgentWaitResourceId: CertificateAuthorityArn
+      AgentWaitDeleteExceptions:
+      - botocore.exceptions.WaiterError
+      AgentResourceId: CertificateAuthorityArn
+      AgentCreateArgs: !Sub |
+        {
+            "CertificateAuthorityConfiguration": {
+                "KeyAlgorithm": "RSA_2048",
+                "SigningAlgorithm": "SHA256WITHRSA",
+                "Subject": {
+                    "Country": "CA",
+                    "Organization": "belodetek",
+                    "OrganizationalUnit": "belodetek.io",
+                    "CommonName": "belodetek.io Server CA S1"
+                }
+            },
+            "RevocationConfiguration": {
+                "CrlConfiguration": {
+                    "Enabled": true,
+                    "ExpirationInDays": ${LogsRetentionInDays},
+                    "CustomCname": "${AlternativeName}.${DomainWithoutDot}",
+                    "S3BucketName": "${Bucket}"
+                }
+            },
+            "CertificateAuthorityType": "SUBORDINATE",
+            "Tags": [
+                {
+                    "Key": "Name",
+                    "Value": "${NameTag}"
+                }
+            ]
+        }
+      AgentUpdateArgs: !Sub |
+        {
+            "RevocationConfiguration": {
+                "CrlConfiguration": {
+                    "Enabled": true,
+                    "ExpirationInDays": ${LogsRetentionInDays},
+                    "CustomCname": "${AlternativeName}.${DomainWithoutDot}",
+                }
+            },
+            "Status": "ACTIVE"
+        }
+      AgentDeleteArgs: !Sub |
+        {
+            "PermanentDeletionTimeInDays": ${LogsRetentionInDays}
+        }
+
+  CSRSubordinateS1:
+    Type: 'Custom::CSRSubordinateS1'
+    Condition: HasSubordinateCSR
+    Version: 1.0
+    Properties:
+      ServiceToken: !Sub 'arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:generic-custom-resource-provider'
+      Version: S1
+      AgentService: acm-pca
+      AgentType: client
+      AgentCreateMethod: get_certificate_authority_csr
+      AgentCreateArgs:
+        CertificateAuthorityArn: !Sub '${PCASubordinateS1}'
+
+  SignCSRSubordinateS1:
+    Type: 'Custom::SignCSRSubordinateS1'
+    Condition: HasSubordinateCSR
+    Version: 1.0
+    Properties:
+      ServiceToken: !Sub 'arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:generic-custom-resource-provider'
+      Version: R1
+      # custom module: acm_pca.py
+      AgentService: acm_pca
+      AgentType: custom
+      AgentCreateMethod: sign_csr
+      # base64 encode CSR to escape '\n' hell
+      AgentCreateArgs: !Join
+      - ''
+      - - !Sub '{ "PrivateKey": "/rsa-private-keys/${NameTag}/key_pair",'
+        - '"CACert": "'
+        - Fn::Base64:
+            !Sub '${GenerateSelfSignedCertV1.Certificate}'
+        - '",'
+        - '"Csr": "'
+        - Fn::Base64:
+            !Sub '${CSRSubordinateS1.Csr}'
+        - '",'
+        - '"ValidityInSeconds": 315360000,'
+        - '"Digest": "sha256" }'
+
+  # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/acm-pca.html#ACMPCA.Client.import_certificate_authority_certificate
+  ImportSubordinateCertificateS1:
+    Type: 'Custom::ImportSubordinateCertificateS1'
+    Condition: HasSubordinateImportCertificate
+    Version: 1.0
+    Properties:
+      ServiceToken: !Sub 'arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:generic-custom-resource-provider'
+      Version: R1
+      # custom module: acm_pca.py (proxy method to handle bytes encoding)
+      AgentService: acm_pca
+      AgentType: custom
+      AgentCreateMethod: import_certificate_authority_certificate
+      AgentCreateArgs: !Join
+      - ''
+      - - !Sub '{ "CertificateAuthorityArn": "${PCASubordinateS1}",'
+        - '"Certificate": "'
+        - Fn::Base64:
+            !Sub '${SignCSRSubordinateS1.Certificate}'
+        - '",'
+        - '"CACertificate": "'
+        - Fn::Base64:
+            !Sub '${GenerateSelfSignedCertV1.Certificate}'
+        - '"}'
+
+  # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/acm-pca.html#ACMPCA.Client.issue_certificate
+  # TBC: not implemented
+  IssueSubordinateCertificateS1:
+    Type: 'Custom::IssueSubordinateCertificateS1'
+    Condition: HasBothCA
+    Version: 1.0
+    Properties:
+      ServiceToken: !Sub 'arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:generic-custom-resource-provider'
+      Version: S1
+      # custom module: acm_pca.py (proxy method to handle bytes encoding)
+      AgentService: acm_pca
+      AgentType: custom
+      AgentCreateMethod: issue_certificate
+      # https://docs.aws.amazon.com/acm-pca/latest/userguide/UsingTemplates.html
+      # base64 encode CSR to escape '\n' hell
+      AgentCreateArgs: !Join
+      - ''
+      - - '{ "CertificateAuthorityArn": "${PCARootR1}",'
+        - '"Csr": "'
+        - Fn::Base64:
+            !Sub '${CSRSubordinateS1.Csr}'
+        - '",'
+        - '"SigningAlgorithm": "SHA256WITHRSA",'
+        - !Sub '"TemplateArn": "arn:${AWS::Partition}:acm-pca:::template/SubordinateCACertificate_PathLen0/V1",'
+        - '"Validity": { "Value": 10, "Type": "YEARS" } }'
+
+#      AgentCreateArgs: !Sub |
+#        {
+#            "CertificateAuthorityArn": "${PCARootR1}",
+#            "Csr": "${CSRSubordinateS1.Csr}",
+#            "SigningAlgorithm": "SHA256WITHRSA",
+#            "TemplateArn": "arn:${AWS::Partition}:acm-pca:::template/SubordinateCACertificate_PathLen0/V1",
+#            "Validity": {
+#                "Value": 10,
+#                "Type": "YEARS"
+#            }
+#        }
+
+
+Outputs:
+  PCAStackName:
+    Value: !Ref 'AWS::StackName'
+    Export:
+      Name: !Sub 'ACMStackName-${AWS::StackName}'
+  PCARootR1:
+    Condition: HasRootCA
+    Value: !Sub '${PCARootR1}'
+    Export:
+      Name: !Sub 'PCARootR1-${AWS::StackName}'
+  PCASubordinateS1:
+    Condition: HasSubordinateCA
+    Value: !Sub '${PCASubordinateS1}'
+    Export:
+      Name: !Sub 'PCASubordinateS1-${AWS::StackName}'
+  # TBC: not implemented
+  SubordinateCertificateS1:
+    Condition: HasBothCA
+    Value: !Sub '${IssueSubordinateCertificateS1.CertificateArn}'
+    Export:
+      Name: !Sub 'SubordinateCertificateS1-${AWS::StackName}'

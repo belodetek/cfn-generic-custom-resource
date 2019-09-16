@@ -1,0 +1,187 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'S3 resources'
+
+
+Parameters:
+  NameTag:
+    Type: String
+  LogsRetentionInDays:
+    Type: String
+  S3DeletionPolicy:
+    Type: String
+  AccessLogging:
+    Type: String
+    Default: 'false'
+
+
+Conditions:
+  HasRetain: !Equals [ 'Retain', !Ref 'S3DeletionPolicy' ]
+  HasDelete: !Equals [ 'Delete', !Ref 'S3DeletionPolicy' ]
+  HasAccessLogs: !Equals [ 'true', !Ref 'AccessLogging' ]
+
+
+Resources:
+  # https://docs.aws.amazon.com/AmazonS3/latest/dev/ServerLogs.html
+  # https://docs.aws.amazon.com/AmazonS3/latest/dev/lifecycle-and-other-bucket-config.html#lifecycle-and-logging
+  # https://docs.aws.amazon.com/AmazonS3/latest/dev/enable-logging-programming.html#grant-log-delivery-permissions-general
+  # https://stackoverflow.com/a/42964199/1559300
+  # https://docs.aws.amazon.com/AmazonS3/latest/dev/acl-overview.html#canned-acl
+  # https://stackoverflow.com/questions/32513958/boto3-s3-client-put-bucket-logging-broken
+  # https://docs.aws.amazon.com/general/latest/gr/acct-identifiers.html
+  AccessLogsBucket:
+    Type: 'AWS::S3::Bucket'
+    Condition: HasAccessLogs
+    Properties:
+      # https://docs.aws.amazon.com/AmazonS3/latest/dev/acl-overview.html#canned-acl
+      AccessControl: LogDeliveryWrite
+      LifecycleConfiguration:
+        Rules:
+        - Status: Enabled
+          ExpirationInDays: !Sub '${LogsRetentionInDays}'
+          NoncurrentVersionExpirationInDays: !Sub '${LogsRetentionInDays}'
+          AbortIncompleteMultipartUpload:
+            DaysAfterInitiation: 1
+      Tags:
+      - Key: Name
+        Value: !Sub '${NameTag}'
+
+  # https://forums.aws.amazon.com/thread.jspa?messageID=629256
+  AccessLogsBucketPolicy:
+    Type: 'AWS::S3::BucketPolicy'
+    Condition: HasAccessLogs
+    Properties:
+      Bucket: !Sub '${AccessLogsBucket}'
+      PolicyDocument:
+        Statement:
+        - Action:
+          - 's3:Get*'
+          - 's3:List*'
+          Effect: 'Allow'
+          Principal:
+            AWS: !Sub 'arn:${AWS::Partition}:iam::858827067514:root'
+          Resource: !Sub 'arn:${AWS::Partition}:s3:::${AccessLogsBucket}/*'
+        - Action:
+          - 's3:Get*'
+          - 's3:List*'
+          Effect: 'Allow'
+          Principal:
+            AWS: !Sub 'arn:${AWS::Partition}:iam::858827067514:root'
+          Resource: !Sub 'arn:${AWS::Partition}:s3:::${AccessLogsBucket}'
+
+  BucketRetain:
+    Type: 'AWS::S3::Bucket'
+    Condition: HasRetain
+    Properties:
+      AccessControl: BucketOwnerFullControl
+      LoggingConfiguration: !If
+      - HasAccessLogs
+      - DestinationBucketName: !Sub '${AccessLogsBucket}'
+        LogFilePrefix: !Sub '${NameTag}/'
+      - !Ref 'AWS::NoValue'
+      Tags:
+      - Key: Name
+        Value: !Sub '${NameTag}'
+
+  BucketDelete:
+    Type: 'AWS::S3::Bucket'
+    Condition: HasDelete
+    DeletionPolicy: Delete
+    Properties:
+      AccessControl: BucketOwnerFullControl
+      LoggingConfiguration: !If
+      - HasAccessLogs
+      - DestinationBucketName: !Sub '${AccessLogsBucket}'
+        LogFilePrefix: !Sub '${NameTag}/'
+      - !Ref 'AWS::NoValue'
+      Tags:
+      - Key: Name
+        Value: !Sub '${NameTag}'
+
+  BucketName:
+    Type: 'AWS::SSM::Parameter'
+    Properties:
+      Name: !Sub '/${NameTag}/${AWS::StackName}/bucket_name'
+      Type: 'String'
+      Value: !If [ HasRetain, !Ref 'BucketRetain', !Ref 'BucketDelete' ]
+      Description: !Sub '${NameTag} YUM repository bucket name.'
+
+  BucketARN:
+    Type: 'AWS::SSM::Parameter'
+    Properties:
+      Name: !Sub '/${NameTag}/${AWS::StackName}/apps_bucket_arn'
+      Type: 'String'
+      Value: !If [ HasRetain, !GetAtt BucketRetain.Arn, !GetAtt BucketDelete.Arn ]
+      Description: !Sub '${NameTag} YUM repository bucket ARN.'
+
+  LogsBucketRetain:
+    Type: 'AWS::S3::Bucket'
+    Condition: HasRetain
+    Properties:
+      AccessControl: Private
+      LifecycleConfiguration:
+        Rules:
+        - Status: Enabled
+          ExpirationInDays: !Ref 'LogsRetentionInDays'
+      Tags:
+      - Key: Name
+        Value: !Sub '${NameTag}'
+
+  LogsBucketDelete:
+    Type: 'AWS::S3::Bucket'
+    Condition: HasDelete
+    DeletionPolicy: Delete
+    Properties:
+      AccessControl: Private
+      LifecycleConfiguration:
+        Rules:
+        - Status: Enabled
+          ExpirationInDays: !Ref 'LogsRetentionInDays'
+      Tags:
+      - Key: Name
+        Value: !Sub '${NameTag}'
+
+
+Outputs:
+  S3StackName:
+    Value: !Ref 'AWS::StackName'
+    Export:
+      Name: !Sub 'S3StackName-${AWS::StackName}'
+  Bucket:
+    Value: !If [ HasRetain, !Ref 'BucketRetain', !Ref 'BucketDelete' ]
+    Export:
+      Name: !Sub 'Bucket-${AWS::StackName}'
+  BucketArn:
+    Value: !If [ HasRetain, !GetAtt BucketRetain.Arn, !GetAtt BucketDelete.Arn ]
+    Export:
+      Name: !Sub 'BucketArn-${AWS::StackName}'
+  BucketDomainName:
+    Value: !If
+    - HasRetain
+    - !GetAtt BucketRetain.DomainName
+    - !GetAtt BucketDelete.DomainName
+    Export:
+      Name: !Sub 'BucketDomainName-${AWS::StackName}'
+  BucketDualStackDomainName:
+    Value: !If
+    - HasRetain
+    - !GetAtt BucketRetain.DualStackDomainName
+    - !GetAtt BucketDelete.DualStackDomainName
+    Export:
+      Name: !Sub 'BucketDualStackDomainName-${AWS::StackName}'
+  LogsBucket:
+    Value: !If [ HasRetain, !Ref 'LogsBucketRetain', !Ref 'LogsBucketDelete' ]
+    Export:
+      Name: !Sub 'LogsBucket-${AWS::StackName}'
+  LogsBucketArn:
+    Value: !If [ HasRetain, !GetAtt LogsBucketRetain.Arn, !GetAtt LogsBucketDelete.Arn ]
+    Export:
+      Name: !Sub 'LogsBucketArn-${AWS::StackName}'
+  LogsBucketDomainName:
+    Value: !If [ HasRetain, !GetAtt LogsBucketRetain.DomainName, !GetAtt LogsBucketDelete.DomainName ]
+    Export:
+      Name: !Sub 'LogsBucketDomainName-${AWS::StackName}'
+  LogsBucketDualStackDomainName:
+    Value: !If [ HasRetain, !GetAtt LogsBucketRetain.DualStackDomainName, !GetAtt LogsBucketDelete.DualStackDomainName ]
+    Export:
+      Name: !Sub 'LogsBucketDualStackDomainName-${AWS::StackName}'

@@ -55,6 +55,14 @@ Resources:
       - !Sub 'arn:${AWS::Partition}:iam::aws:policy/ReadOnlyAccess'
       - !Sub 'arn:${AWS::Partition}:iam::aws:policy/AWSBackupAdminPolicy'
       Policies:
+      - PolicyName: AmazonPCAPolicy
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - 'acm-pca:*'
+            Resource: '*'
       - PolicyName: AmazonBackupPolicy
         PolicyDocument:
           Version: '2012-10-17'
@@ -105,6 +113,7 @@ Resources:
   CustomResourceLambda:
     Type: 'AWS::Lambda::Function'
     Properties:
+      FunctionName: 'generic-custom-resource-provider'
       Handler: generic_provider.lambda_handler
       Code: generic_provider
       Runtime: python3.7

@@ -1,0 +1,120 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Lambda resources
+Parameters:
+  NameTag:
+    Type: String
+Resources:
+  VPCPeeringRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: VPCPeeringRole
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            AWS:
+            - Fn::Sub: ${AWS::AccountId}
+          Action: sts:AssumeRole
+      Path: /
+      ManagedPolicyArns:
+      - Fn::Sub: arn:${AWS::Partition}:iam::aws:policy/ReadOnlyAccess
+      Policies:
+      - PolicyName: AmazonEC2Policy
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - ec2:AcceptVpcPeeringConnection
+            - ec2:CreateRoute
+            - ec2:Deleteroute
+            - ec2:CreateTags
+            - ec2:DeleteTags
+            - ec2:RevokeSecurityGroup*
+            - ec2:UpdateSecurityGroup*
+            - ec2:AuthorizeSecurityGroup*
+            Resource: '*'
+  CustomResourceLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action: sts:AssumeRole
+          Principal:
+            Service: lambda.amazonaws.com
+      ManagedPolicyArns:
+      - Fn::Sub: arn:${AWS::Partition}:iam::aws:policy/ReadOnlyAccess
+      - Fn::Sub: arn:${AWS::Partition}:iam::aws:policy/AWSBackupAdminPolicy
+      Policies:
+      - PolicyName: AmazonCloudWatchPolicy
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            Resource:
+              Fn::Sub: arn:${AWS::Partition}:logs:*:*:*
+      - PolicyName: AmazonEC2Policy
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - ec2:*ClientVpn*
+            Resource: '*'
+      - PolicyName: AmazonCognitoPolicy
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - cognito-idp:*UserPool*
+            - cognito-idp:*ResourceServer
+            - cognito-idp:*IdentityProvider
+            Resource: '*'
+      - PolicyName: AmazonSTSPolicy
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - sts:AssumeRole
+            - sts:PassRole
+            Resource:
+            - Fn::Sub: arn:${AWS::Partition}:iam::${AWS::AccountId}:role/VPCPeeringRole
+  CustomResourceLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: generic-custom-resource-provider
+      Handler: generic_provider.lambda_handler
+      Code:
+        S3Bucket: 0b4dd3f0-d8c4-11e9-a0de-0f102a395e3c
+        S3Key: c003e69eb3e449567fc9a00e475cf0dc
+      Runtime: python3.7
+      Role:
+        Fn::Sub: ${CustomResourceLambdaRole.Arn}
+      Description: CloudFormation custom generic resource provider.
+      Timeout: 900
+      Tags:
+      - Key: Name
+        Value:
+          Fn::Sub: ${NameTag}
+Outputs:
+  StackName:
+    Value:
+      Fn::Sub: ${AWS::StackName}
+    Export:
+      Name:
+        Fn::Sub: StackName-${AWS::StackName}
+  CustomResourceLambdaArn:
+    Value:
+      Fn::Sub: ${CustomResourceLambda.Arn}
+    Export:
+      Name:
+        Fn::Sub: CustomResourceLambdaArn-${AWS::StackName}

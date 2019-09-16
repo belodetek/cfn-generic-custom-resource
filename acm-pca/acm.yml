@@ -1,0 +1,135 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Certificate Manager (ACM) resources'
+
+
+Parameters:
+  NameTag:
+    Type: String
+  DomainName:
+    Type: String
+  ValidationDomain:
+    Type: String
+  AlternativeName:
+    Type: String
+  LowerCaseDomainWithDot:
+    Type: String
+
+
+Conditions:
+  HasAlternativeName: !And
+  - !Not [ !Equals [ '', !Ref 'AlternativeName' ]]
+  - !Not [ !Equals [ 'us-east-1', !Ref 'AWS::Region' ]]
+
+
+Resources:
+  SSLCertificate:
+    Type: 'AWS::CertificateManager::Certificate'
+    Properties:
+      DomainName: !Sub '*.${DomainName}'
+      SubjectAlternativeNames:
+      - !Sub '${DomainName}'
+      - !Sub '*.${DomainName}'
+      - !Sub '${NameTag}.${ValidationDomain}'
+      - !Sub '${AlternativeName}.${ValidationDomain}'
+      DomainValidationOptions:
+      - DomainName: !Sub '${DomainName}'
+        ValidationDomain: !Ref 'ValidationDomain'
+      - DomainName: !Sub '*.${DomainName}'
+        ValidationDomain: !Ref 'ValidationDomain'
+      - DomainName: !Sub '${NameTag}.${ValidationDomain}'
+        ValidationDomain: !Ref 'ValidationDomain'
+      - DomainName: !Sub '${AlternativeName}.${ValidationDomain}'
+        ValidationDomain: !Ref 'ValidationDomain'
+      Tags:
+      - Key: Name
+        Value: !Sub '${NameTag}'
+
+  # https://aws.amazon.com/premiumsupport/knowledge-center/custom-ssl-certificate-cloudfront/
+  # https://aws.amazon.com/premiumsupport/knowledge-center/cloudfront-invalid-viewer-certificate/
+  CloudFrontCertificate:
+    Type: 'Custom::CloudFrontCertificate'
+    Condition: HasAlternativeName
+    Version: 1.0
+    Properties:
+      ServiceToken: !Sub 'arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:generic-custom-resource-provider'
+      Version: 1.0
+      AgentService: acm
+      AgentType: client
+      # https://forums.aws.amazon.com/thread.jspa?threadID=232210
+      AgentRegion: 'us-east-1'
+      AgentCreateMethod: request_certificate
+      AgentUpdateMethod: update_certificate_options
+      AgentDeleteMethod: delete_certificate
+      AgentWaitMethod: certificate_validated
+      AgentWaitQueryExpr: '$.CertificateArn'
+      AgentWaitResourceId: CertificateArn
+      AgentResourceId: CertificateArn
+      AgentCreateArgs:
+        DomainName: !Sub '*.${DomainName}'
+        ValidationMethod: 'EMAIL'
+        SubjectAlternativeNames:
+        - !Sub '${DomainName}'
+        - !Sub '*.${DomainName}'
+        - !Sub '${NameTag}.${ValidationDomain}'
+        - !Sub '${AlternativeName}.${ValidationDomain}'
+        DomainValidationOptions:
+        - DomainName: !Sub '${DomainName}'
+          ValidationDomain: !Ref 'ValidationDomain'
+        - DomainName: !Sub '*.${DomainName}'
+          ValidationDomain: !Ref 'ValidationDomain'
+        - DomainName: !Sub '${NameTag}.${ValidationDomain}'
+          ValidationDomain: !Ref 'ValidationDomain'
+        - DomainName: !Sub '${AlternativeName}.${ValidationDomain}'
+          ValidationDomain: !Ref 'ValidationDomain'
+      AgentUpdateArgs:
+        Options:
+          CertificateTransparencyLoggingPreference: 'DISABLED'
+
+  CloudFrontCertificateTags:
+    Type: 'Custom::CloudFrontCertificate'
+    Condition: HasAlternativeName
+    DependsOn: CloudFrontCertificate
+    Version: 1.0
+    Properties:
+      ServiceToken: !Sub 'arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:generic-custom-resource-provider'
+      Version: 1.0
+      AgentService: acm
+      AgentType: client
+      AgentRegion: 'us-east-1'
+      AgentCreateMethod: add_tags_to_certificate
+      AgentCreateArgs:
+        CertificateArn: !Sub '${CloudFrontCertificate}'
+        Tags:
+        - Key: Name
+          Value: !Sub '${NameTag}'
+
+
+Outputs:
+  ACMStackName:
+    Value: !Ref 'AWS::StackName'
+    Export:
+      Name: !Sub 'ACMStackName-${AWS::StackName}'
+  SSLCertificateArn:
+    Value: !If
+    - HasAlternativeName
+    - !Sub '${CloudFrontCertificate}'
+    - !Sub '${SSLCertificate}'
+    Export:
+      Name: !Sub 'SSLCertificateArn-${AWS::StackName}'
+  DomainName:
+    Value: !Ref 'DomainName'
+    Export:
+      Name: !Sub 'DomainName-${AWS::StackName}'
+  ValidationDomain:
+    Value: !Ref 'ValidationDomain'
+    Export:
+      Name: !Sub 'ValidationDomain-${AWS::StackName}'
+  CustomDomain:
+    Value: !Join
+    - '.'
+    - - 'public'
+      - !Select [ 1, !Split [ '.', !Ref 'LowerCaseDomainWithDot' ]]
+      - !Sub '${ValidationDomain}'
+    Export:
+      Name: !Sub 'CustomDomain-${AWS::StackName}'

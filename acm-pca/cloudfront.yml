@@ -1,0 +1,207 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'CloudFront resources'
+
+
+Parameters:
+  NameTag:
+    Type: String
+  Bucket:
+    Type: String
+  LogsBucket:
+    Type: String
+  DomainName:
+    Type: String
+  AlternativeName:
+    Type: String
+  DomainWithoutDot:
+    Type: String
+  CustomDomain:
+    Type: String
+    Default: ''
+  ACMCertificateArn:
+    Type: String
+    Default: ''
+  HostedZone:
+    Type: String
+    Default: ''
+
+
+Conditions:
+  HasCustomSSL: !Not [ !Equals [ '', !Ref 'ACMCertificateArn' ]]
+  HasCustomDomain: !Not [ !Equals [ '', !Ref 'CustomDomain' ]]
+  HasHostedZone: !And
+  - !Not [ !Equals [ '', !Ref 'HostedZone' ]]
+  - !Condition HasCustomSSL
+  - !Condition HasCustomDomain
+
+
+Resources:
+  # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-cloudfront-cloudfrontoriginaccessidentity.html
+  CFOAccessIdentity:
+    Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
+    Properties:
+      CloudFrontOriginAccessIdentityConfig:
+        Comment: !Sub '${NameTag} origin access identity for CloudFront distribution.'
+
+  # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-cloudfront-distribution.html
+  CFDistribution:
+    Type: 'AWS::CloudFront::Distribution'
+    DependsOn: CFOAccessIdentity
+    Properties:
+      DistributionConfig:
+        Comment: !Sub '${NameTag} CloudFront distribution for S3 bucket containing PCA CRL.'
+        # https://forums.aws.amazon.com/thread.jspa?threadID=77942
+        # https://labs.detectify.com/2016/10/05/the-story-of-ev-ssl-aws-and-trailing-dot-domains/
+        Aliases: !If
+        - HasCustomDomain
+        - - !Sub '${CustomDomain}'
+          - !Sub '*.${CustomDomain}'
+          - !Sub '${NameTag}.${DomainWithoutDot}'
+          - !Sub '${AlternativeName}.${DomainWithoutDot}'
+        - !Ref 'AWS::NoValue'
+        IPV6Enabled: true
+        Enabled: true
+        HttpVersion: http2
+        PriceClass: PriceClass_100
+        DefaultCacheBehavior:
+          ForwardedValues:
+            Cookies:
+              Forward: none
+            QueryString: false
+          TargetOriginId: !Sub '${NameTag}'
+          ViewerProtocolPolicy: redirect-to-https
+        Logging:
+          Bucket: !Ref 'LogsBucket'
+          IncludeCookies: false
+          Prefix: !Sub 's3-pca-crl-access-logs'
+        Origins:
+        - DomainName: !Ref 'DomainName'
+          Id: !Ref 'NameTag'
+          S3OriginConfig:
+            OriginAccessIdentity: !Sub 'origin-access-identity/cloudfront/${CFOAccessIdentity}'
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-cloudfront-distribution-viewercertificate.html
+        ViewerCertificate: !If
+          - HasCustomSSL
+          - AcmCertificateArn: !Sub '${ACMCertificateArn}'
+            SslSupportMethod: 'sni-only'
+          - CloudFrontDefaultCertificate: true
+      Tags:
+      - Key: Name
+        Value: !Sub '${NameTag}'
+
+  RecordSet:
+    Type: 'AWS::Route53::RecordSet'
+    Condition: HasHostedZone
+    DependsOn: CFDistribution
+    Properties:
+      HostedZoneId: !Ref 'HostedZone'
+      Comment: !Sub '${NameTag} CloudFront PCA CRL custom domain.'
+      Name: !Sub '${NameTag}.${CustomDomain}.'
+      Type: CNAME
+      TTL: '60'
+      ResourceRecords:
+      - !GetAtt CFDistribution.DomainName
+
+  # https://forums.aws.amazon.com/thread.jspa?messageID=629256
+  BucketPolicy:
+    Type: 'AWS::S3::BucketPolicy'
+    DependsOn: CFOAccessIdentity
+    Properties:
+      Bucket: !Ref 'Bucket'
+      PolicyDocument:
+        Statement:
+        - Action:
+          - 's3:GetObject'
+          Effect: 'Allow'
+          Principal:
+            AWS: !Sub 'arn:${AWS::Partition}:iam::cloudfront:user/CloudFront Origin Access Identity ${CFOAccessIdentity}'
+          Resource:
+          - !Sub 'arn:${AWS::Partition}:s3:::${Bucket}/*'
+        - Action:
+          - 's3:GetObject'
+          Effect: 'Allow'
+          Principal:
+            AWS:
+            - !Sub 'arn:${AWS::Partition}:iam::582100440350:root'
+            - !Sub 'arn:${AWS::Partition}:iam::465041679107:root'
+            - !Sub 'arn:${AWS::Partition}:iam::313347522657:root'
+            - !Sub 'arn:${AWS::Partition}:iam::122190333754:root'
+            - !Sub 'arn:${AWS::Partition}:iam::825770278292:root'
+            - !Sub 'arn:${AWS::Partition}:iam::994582633039:root'
+            - !Sub 'arn:${AWS::Partition}:iam::107582208532:root'
+            - !Sub 'arn:${AWS::Partition}:iam::755875762549:root'
+          Resource:
+          - !Sub 'arn:${AWS::Partition}:s3:::${Bucket}/*'
+        - Action:
+          - 's3:ListBucket'
+          Effect: 'Allow'
+          Principal:
+            AWS:
+            - !Sub 'arn:${AWS::Partition}:iam::582100440350:root'
+            - !Sub 'arn:${AWS::Partition}:iam::465041679107:root'
+            - !Sub 'arn:${AWS::Partition}:iam::313347522657:root'
+            - !Sub 'arn:${AWS::Partition}:iam::122190333754:root'
+            - !Sub 'arn:${AWS::Partition}:iam::825770278292:root'
+            - !Sub 'arn:${AWS::Partition}:iam::994582633039:root'
+            - !Sub 'arn:${AWS::Partition}:iam::107582208532:root'
+            - !Sub 'arn:${AWS::Partition}:iam::755875762549:root'
+          Resource:
+          - !Sub 'arn:${AWS::Partition}:s3:::${Bucket}'
+        - Action:
+          - 's3:Get*'
+          - 's3:List*'
+          Effect: 'Allow'
+          Principal:
+            AWS: !Sub 'arn:${AWS::Partition}:iam::858827067514:root'
+          Resource: !Sub 'arn:${AWS::Partition}:s3:::${Bucket}/*'
+        - Action:
+          - 's3:Get*'
+          - 's3:List*'
+          Effect: 'Allow'
+          Principal:
+            AWS: !Sub 'arn:${AWS::Partition}:iam::858827067514:root'
+          Resource: !Sub 'arn:${AWS::Partition}:s3:::${Bucket}'
+        - Action:
+          - 's3:Get*'
+          - 's3:Put*'
+          Effect: 'Allow'
+          Principal:
+            Service:
+            - 'acm-pca.amazonaws.com'
+          Resource: !Sub 'arn:${AWS::Partition}:s3:::${Bucket}/*'
+        - Action:
+          - 's3:Get*'
+          - 's3:Put*'
+          Effect: 'Allow'
+          Principal:
+            Service:
+            - 'acm-pca.amazonaws.com'
+          Resource: !Sub 'arn:${AWS::Partition}:s3:::${Bucket}'
+
+
+Outputs:
+  CFStackName:
+    Value: !Ref 'AWS::StackName'
+    Export:
+      Name: !Sub 'CFStackName-${AWS::StackName}'
+  CFOAccessIdentity:
+    Value: !Ref 'CFOAccessIdentity'
+    Export:
+      Name: !Sub 'CFOAccessIdentity-${AWS::StackName}'
+  CFOAccessIdentityS3CanonicalUserId:
+    Value: !GetAtt CFOAccessIdentity.S3CanonicalUserId
+    Export:
+      Name: !Sub 'CFOAccessIdentityS3CanonicalUserId-${AWS::StackName}'
+  CFDistribution:
+    Value: !Ref 'CFDistribution'
+    Export:
+      Name: !Sub 'CFDistribution-${AWS::StackName}'
+  CFDistributionDomainName:
+    Value: !GetAtt CFDistribution.DomainName
+    Export:
+      Name: !Sub 'CFDistributionDomainName-${AWS::StackName}'
+  CustomDomain:
+    Value: !Sub '${CustomDomain}'
+    Export:
+      Name: !Sub 'CustomDomain-${AWS::StackName}'

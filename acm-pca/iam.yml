@@ -1,0 +1,59 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'IAM resources'
+
+
+Parameters:
+  NameTag:
+    Type: String
+  KeySize:
+    Type: String
+    Default: 2048
+
+
+Conditions:
+  Has2Key: !Equals [ '2048', !Ref 'KeySize' ]
+  Has4Key: !Equals [ '4096', !Ref 'KeySize' ]
+
+
+Resources:
+  # RSA signing key
+  PrivateKey:
+    Type: 'Custom::RSAKey'
+    Version: 1.0
+    Properties:
+      Name: !Sub '/rsa-private-keys/${NameTag}/key_pair'
+      Version: 2.0
+      RefreshOnUpdate: True
+      KeySize: !If
+      - Has2Key
+      - 2048
+      - 4096
+      Description: !Sub '${NameTag} private CA private key.'
+      NoEcho: True
+      ServiceToken: !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:binxio-cfn-secret-provider'
+
+  PublicKey:
+    Type: 'AWS::SSM::Parameter'
+    Properties:
+      Name: !Sub '/rsa-public-keys/${NameTag}/public_key'
+      Type: 'String'
+      Value: !Sub '${PrivateKey.PublicKey}'
+      Description: !Sub '${NameTag} private CA corresponding public key.'
+
+
+Outputs:
+  IAMStackName:
+    Value: !Ref 'AWS::StackName'
+    Export:
+      Name: !Sub 'IAMStackName-${AWS::StackName}'
+  PrivateKey:
+    Value: !Sub '${PrivateKey}'
+    Description: 'Private CA private key ARN in the parameter store.'
+    Export:
+      Name: !Sub 'PrivateKey-${AWS::StackName}'
+  PublicKey:
+    Value: !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/rsa-public-keys/${NameTag}/public_key'
+    Description: 'Private CA public key ARN in the parameter store.'
+    Export:
+      Name: !Sub 'PublicKey-${AWS::StackName}'

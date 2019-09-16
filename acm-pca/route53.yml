@@ -1,0 +1,66 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Route53 resources'
+
+
+Parameters:
+  NameTag:
+    Type: String
+  HostedZone:
+    Type: String
+
+
+Resources:
+  HostedZonePublic:
+    Type: 'AWS::Route53::HostedZone'
+    Properties:
+      HostedZoneConfig:
+        Comment: !Sub '${NameTag} public sub-domain for ${HostedZone}'
+      Name:
+        Fn::Join:
+        - ''
+        - - 'public'
+          - '.'
+          - !Select [ 2, !Split [ '/', !Ref 'AWS::StackId' ]]
+          - '.'
+          - !Ref 'HostedZone'
+          - '.'
+      HostedZoneTags:
+      - Key: Name
+        Value: !Ref 'NameTag'
+
+  LowerCaseDomainWithDot:
+    Type: 'Custom::LowerCaseDomainWithDot'
+    Version: 1.0
+    Properties:
+      ServiceToken: !Sub 'arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:generic-custom-resource-provider'
+      AgentService: route53
+      AgentType: client
+      AgentCreateMethod: get_hosted_zone
+      AgentWaitQueryExpr: '$.HostedZone.Name'
+      AgentCreateArgs:
+        Id: !Sub '${HostedZonePublic}'
+
+
+Outputs:
+  R53StackName:
+    Value: !Ref 'AWS::StackName'
+    Export:
+      Name: !Sub 'R53StackName-${AWS::StackName}'
+  HostedZonePublic:
+    Value: !Ref 'HostedZonePublic'
+    Export:
+      Name: !Sub 'HostedZonePublic-${AWS::StackName}'
+  PublicDNSName:
+    Value:
+      Fn::Join:
+      - '.'
+      - - 'public'
+        - !Select [ 1, !Split [ '.', !Ref 'LowerCaseDomainWithDot' ]]
+        - !Ref 'HostedZone'
+    Export:
+      Name: !Sub 'ZoneNameDNSBase-${AWS::StackName}'
+  LowerCaseDomainWithDot:
+    Value: !Sub '${LowerCaseDomainWithDot}'
+    Export:
+      Name: !Sub 'LowerCaseDomainWithDot-${AWS::StackName}'

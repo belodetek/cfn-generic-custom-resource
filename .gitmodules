@@ -1,0 +1,3 @@
+[submodule "acm-pca/cfn-secret-provider"]
+	path = acm-pca/cfn-secret-provider
+	url = https://github.com/binxio/cfn-secret-provider.git
