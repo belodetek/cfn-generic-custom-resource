@@ -115,7 +115,7 @@ Resources:
     Properties:
       FunctionName: 'generic-custom-resource-provider'
       Handler: generic_provider.lambda_handler
-      Code: generic_provider
+      Code: 'generic_provider/build'
       Runtime: python3.7
       Role: !Sub '${CustomResourceLambdaRole.Arn}'
       Description: 'CloudFormation custom generic resource provider.'

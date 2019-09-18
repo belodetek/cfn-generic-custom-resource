@@ -64,10 +64,14 @@ For more information, please read this blog [post](https://anton.belodedenko.me/
       && pushd generic_provider\
       && python -m venv venv || python -m virtualenv venv\
       && . venv/bin/activate\
-      && make\
       && pip install --upgrade pip\
       && pip install --upgrade -r requirements.txt -t .\
       && popd
+
+
+#### compile dependencies
+
+    docker ps && pushd generic_provider && make && popd
 
 
 ### Client VPN demo
@@ -417,7 +421,7 @@ aws s3api put-bucket-policy\
         aws cloudformation package\
           --template-file ${template}-template.yaml\
           --s3-bucket ${bucket}\
-          --output-template-file ${template}.yml
+          --output-template-file ${template}.yaml
     done; popd
 
 
@@ -431,7 +435,7 @@ aws s3api put-bucket-policy\
 
 
     pushd acm-pca; aws cloudformation deploy\
-      --template-file main.yml\
+      --template-file main.yaml\
       --stack-name ${stack_name}\
       --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM\
       --parameter-overrides\

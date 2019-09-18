@@ -129,7 +129,7 @@ Resources:
   LambdaStack:
     Type: 'AWS::CloudFormation::Stack'
     Properties:
-      TemplateURL: ./lambda.yml
+      TemplateURL: 'lambda.yaml'
       Parameters:
         NameTag: !Sub '${AWS::StackName}'
       NotificationARNs:
@@ -142,7 +142,7 @@ Resources:
   SecretsProviderStack:
     Type: 'AWS::CloudFormation::Stack'
     Properties:
-      TemplateURL: ./cfn-secret-provider/cloudformation/cfn-resource-provider.yaml
+      TemplateURL: 'cfn-secret-provider/cloudformation/cfn-resource-provider.yaml'
       NotificationARNs:
       - !If [ HasNotifySNS, !Ref 'NotificationTopic', !Ref 'AWS::NoValue' ]
       TimeoutInMinutes: !Sub '${TimeoutInMinutes}'
