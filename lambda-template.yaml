@@ -69,7 +69,6 @@ Resources:
           - Effect: Allow
             Action: 'iam:PassRole'
             Resource: !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:role/service-role/AWSBackupDefaultServiceRole'
-      Policies:
       - PolicyName: AmazonCloudWatchPolicy
         PolicyDocument:
           Version: '2012-10-17'
