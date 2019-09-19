@@ -221,6 +221,8 @@ Resources:
   CFStack:
     Type: 'AWS::CloudFormation::Stack'
     Condition: HasCF
+    DependsOn:
+    - S3Stack
     Properties:
       TemplateURL: 'cloudfront.yml'
       Parameters:
@@ -252,7 +254,9 @@ Resources:
   PCAStack:
     Type: 'AWS::CloudFormation::Stack'
     Condition: HasPCA
-    DependsOn: IAMStack
+    DependsOn:
+    - IAMStack
+    - CFStack
     Properties:
       TemplateURL: 'pca.yml'
       Parameters:

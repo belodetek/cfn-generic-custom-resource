@@ -60,8 +60,7 @@ Resources:
           Version: '2012-10-17'
           Statement:
           - Effect: Allow
-            Action:
-            - 'acm-pca:*'
+            Action: 'acm-pca:*'
             Resource: '*'
       - PolicyName: AmazonBackupPolicy
         PolicyDocument:
@@ -120,6 +119,10 @@ Resources:
       Role: !Sub '${CustomResourceLambdaRole.Arn}'
       Description: 'CloudFormation custom generic resource provider.'
       Timeout: 900
+      Environment:
+        # debug, set to 0 or remove in production
+        Variables:
+          VERBOSE: 1
       Tags:
       - Key: Name
         Value: !Sub '${NameTag}'

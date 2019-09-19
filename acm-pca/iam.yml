@@ -8,7 +8,7 @@ Parameters:
     Type: String
   KeySize:
     Type: String
-    Default: 2048
+    Default: 4096
 
 
 Conditions:
