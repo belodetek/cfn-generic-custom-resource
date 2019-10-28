@@ -6,6 +6,7 @@ import boto3
 import json
 import os
 import sys
+import requests
 
 from uuid import uuid4
 from jsonpath import jsonpath

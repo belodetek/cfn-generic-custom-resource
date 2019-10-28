@@ -3,3 +3,4 @@ botocore
 jsonpath
 retrying
 pyOpenSSL
+requests

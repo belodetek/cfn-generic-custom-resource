@@ -4,7 +4,7 @@ import os
 import unittest.mock
 from boto3 import client
 from unittest import TestCase
-from mock import patch
+from unittest.mock import patch
 from uuid import uuid4
 from random import randint
 from generic_provider import Provider

@@ -25,7 +25,7 @@ Please note we have a [code of conduct](CODE_OF_CONDUCT.md), please follow it in
 
     $ pip install -r requirements.txt
 
-    $ python -m unittest
+    $ python -m unittest tests.py
 
     $ deactivate
 
