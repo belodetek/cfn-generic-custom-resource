@@ -1265,6 +1265,45 @@ aws s3api put-bucket-policy\
 ### EC2
 > [EC2](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2.html) API reference
 
+
+#### create_launch_template_from_configuration
+> mock CloudFormation request to [create_launch_template_from_configuration](https://github.com/ab77/cfn-generic-custom-resource)
+
+    pushd generic_provider
+    echo "{
+      \"RequestType\": \"Create\",
+      \"ResponseURL\": \"https://cloudformation-custom-resource-response-${AWS_REGION}.s3.amazonaws.com/\",
+      \"StackId\": \"arn:aws:cloudformation:${AWS_REGION}:$(aws sts get-caller-identity | jq -r '.Account'):stack/MockStack/$(uuid)\",
+      \"RequestId\": \"$(uuid)\",
+      \"ResourceType\": \"Custom::MockResource\",
+      \"LogicalResourceId\": \"MockResource\",
+      \"PhysicalResourceId\": \"$(uuid)\",
+      \"ResourceProperties\": {
+          \"AgentType\": \"custom\",
+          \"AgentService\": \"autoscaling\",
+          \"AgentCreateMethod\": \"create_launch_template_from_configuration\",
+          \"AgentCreateArgs\": {
+              \"LaunchConfigurationName\": \"awseb-e-abcdef1234-stack-AWSEBAutoScalingLaunchConfiguration-99F00TRKDCBAR\",
+              \"LaunchTemplateName\": \"foo-bar\",
+              \"Description\": \"foo-bar\",
+              \"TagSpecifications\": [
+                  {
+                      \"ResourceType\": \"launch-template\",
+                      \"Tags\": [
+                          {
+                              \"Key\": \"Name\",
+                              \"Value\": \"foo-bar\"
+                          }
+                      ]
+                  }
+              ]
+          }
+      }
+    }" | jq -c | VERBOSE=1 ./generic_provider.py
+    popd
+
+
+
 #### create-tags
 > mock CloudFormation request to [tag](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2.html#EC2.ServiceResource.create_tags) resources
 
