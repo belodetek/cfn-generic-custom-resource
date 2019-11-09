@@ -44,7 +44,7 @@ class AUTOSCALING:
         kwargs['launch_template_data'].pop('IamInstanceProfile', None)
         kwargs['launch_template_data']['IamInstanceProfile'] = {}
         kwargs['launch_template_data']['IamInstanceProfile']['Arn'] = instance_profile_arn
-        kwargs['launch_template_data']['IamInstanceProfile']['Name'] = instance_profile_name
+        #kwargs['launch_template_data']['IamInstanceProfile']['Name'] = instance_profile_name
         return kwargs['launch_template_data']
 
 
@@ -105,8 +105,6 @@ class AUTOSCALING:
             file=sys.stderr
         )
 
-        launch_template_name = kwargs['LaunchTemplateName']
-
         client = boto3.client('ec2')
         response = client.delete_launch_template(**kwargs)
 
@@ -116,3 +114,47 @@ class AUTOSCALING:
         )
 
         return response['LaunchTemplate']
+
+
+    def update_auto_scaling_group(self, *args, **kwargs):
+        if self.verbose: print(
+            'args: {}, kwargs: {}'.format(args, kwargs),
+            file=sys.stderr
+        )
+
+        auto_scaling_group_name = kwargs['AutoScalingGroupName']
+        mixed_instances_policy = kwargs['MixedInstancesPolicy']
+
+##        mixed_instances_policy=$(echo '{
+##          "LaunchTemplate": {
+##            "LaunchTemplateSpecification": {
+##              "LaunchTemplateId": "lt-abcdef1234567890",
+##              "Version": "1"
+##            },
+##            "Overrides": [
+##              {
+##                "InstanceType": "t3.medium"
+##              },
+##              {
+##                "InstanceType": "t3a.medium"
+##              },
+##              ...
+##            ]
+##          },
+##          "InstancesDistribution": {
+##            "OnDemandBaseCapacity": 1,
+##            "OnDemandPercentageAboveBaseCapacity": 50
+##          }
+
+        client = boto3.client('autoscaling')
+        response = client.update_auto_scaling_group(
+            AutoScalingGroupName=auto_scaling_group_name,
+            MixedInstancesPolicy=mixed_instances_policy
+        )
+
+        if self.verbose: print(
+            'response: {}'.format(response),
+            file=sys.stderr
+        )
+
+        return response

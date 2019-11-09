@@ -1267,7 +1267,7 @@ aws s3api put-bucket-policy\
 
 
 #### create_launch_template_from_configuration
-> mock CloudFormation request to [create_launch_template_from_configuration](https://github.com/ab77/cfn-generic-custom-resource)
+> mock CloudFormation request to [create_launch_template_from_configuration](https://github.com/ab77/cfn-generic-custom-resource/blob/master/generic_provider/autoscaling.py)
 
     pushd generic_provider
     echo "{
@@ -1302,6 +1302,63 @@ aws s3api put-bucket-policy\
           \"AgentDeleteArgs\": {
               \"LaunchTemplateName\": \"foo-bar\"
           }
+      }
+    }" | jq -c | VERBOSE=1 ./generic_provider.py
+    popd
+
+
+
+#### update_auto_scaling_group
+> mock CloudFormation request to update ASGs created by Elastic Beanstalk with [MixedInstancesPolicy](https://github.com/ab77/cfn-generic-custom-resource/blob/master/generic_provider/autoscaling.py)
+
+    pushd generic_provider
+    echo "{
+      \"RequestType\": \"Create\",
+      \"ResponseURL\": \"https://cloudformation-custom-resource-response-${AWS_REGION}.s3.amazonaws.com/\",
+      \"StackId\": \"arn:aws:cloudformation:${AWS_REGION}:$(aws sts get-caller-identity | jq -r '.Account'):stack/MockStack/$(uuid)\",
+      \"RequestId\": \"$(uuid)\",
+      \"ResourceType\": \"Custom::MockResource\",
+      \"LogicalResourceId\": \"MockResource\",
+      \"PhysicalResourceId\": \"$(uuid)\",
+      \"ResourceProperties\": {
+          \"AgentType\": \"custom\",
+          \"AgentService\": \"autoscaling\",
+          \"AgentResponseNode\": \"ResponseMetadata\",
+          \"AgentCreateMethod\": \"update_auto_scaling_group\",
+          \"AgentUpdateMethod\": \"update_auto_scaling_group\",
+          \"AgentCreateArgs\": {
+            \"AutoScalingGroupName\": \"awseb-e-abcdef1234-stack-AWSEBAutoScalingGroup-99F00TRKDCBAR\",
+            \"MixedInstancesPolicy\": {
+              \"LaunchTemplate\": {
+                \"LaunchTemplateSpecification\": {
+                  \"LaunchTemplateId\": \"lt-abcdef1234567890\",
+                  \"Version\": \"1\"
+                },
+                \"Overrides\": [
+                  {
+                    \"InstanceType\": \"t3a.nano\"
+                  },
+                  {
+                    \"InstanceType\": \"t3a.micro\"
+                  },
+                  {
+                    \"InstanceType\": \"t3a.small\"
+                  },
+                  {
+                    \"InstanceType\": \"t3a.medium\"
+                  },
+                  {
+                    \"InstanceType\": \"t3a.large\"
+                  }
+                ]
+              },
+              \"InstancesDistribution\": {
+                \"OnDemandBaseCapacity\": 0,
+                \"OnDemandPercentageAboveBaseCapacity\": 50
+              }
+            }
+          }
+        }
       }
     }" | jq -c | VERBOSE=1 ./generic_provider.py
     popd
