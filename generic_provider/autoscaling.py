@@ -97,3 +97,22 @@ class AUTOSCALING:
         )
 
         return response['LaunchTemplate']
+
+
+    def delete_launch_template(self, *args, **kwargs):
+        if self.verbose: print(
+            'args: {}, kwargs: {}'.format(args, kwargs),
+            file=sys.stderr
+        )
+
+        launch_template_name = kwargs['LaunchTemplateName']
+
+        client = boto3.client('ec2')
+        response = client.delete_launch_template(**kwargs)
+
+        if self.verbose: print(
+            'response: {}'.format(response),
+            file=sys.stderr
+        )
+
+        return response['LaunchTemplate']

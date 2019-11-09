@@ -1282,6 +1282,7 @@ aws s3api put-bucket-policy\
           \"AgentType\": \"custom\",
           \"AgentService\": \"autoscaling\",
           \"AgentCreateMethod\": \"create_launch_template_from_configuration\",
+          \"AgentDeleteMethod\": \"delete_launch_template\",
           \"AgentCreateArgs\": {
               \"LaunchConfigurationName\": \"awseb-e-abcdef1234-stack-AWSEBAutoScalingLaunchConfiguration-99F00TRKDCBAR\",
               \"LaunchTemplateName\": \"foo-bar\",
@@ -1297,6 +1298,9 @@ aws s3api put-bucket-policy\
                       ]
                   }
               ]
+          },
+          \"AgentDeleteArgs\": {
+              \"LaunchTemplateName\": \"foo-bar\"
           }
       }
     }" | jq -c | VERBOSE=1 ./generic_provider.py
