@@ -28,11 +28,11 @@ class AUTOSCALING:
         kwargs['launch_template_data'].pop('InstanceMonitoring', None)
         kwargs['launch_template_data'].pop('CreatedTime', None)
         kwargs['launch_template_data'].pop('KernelId', None)
-        instance_profile_name = kwargs['launch_template_data']['IamInstanceProfile']
+        instance_profile = kwargs['launch_template_data']['IamInstanceProfile'].split('/')[-1:][0]
 
         client = boto3.client('iam')
         response = client.get_instance_profile(
-            InstanceProfileName=instance_profile_name
+            InstanceProfileName=instance_profile
         )
 
         if self.verbose: print(
@@ -41,6 +41,7 @@ class AUTOSCALING:
         )
 
         instance_profile_arn = response['InstanceProfile']['Arn']
+        instance_profile_name = response['InstanceProfile']['InstanceProfileName']
         kwargs['launch_template_data'].pop('IamInstanceProfile', None)
         kwargs['launch_template_data']['IamInstanceProfile'] = {}
         kwargs['launch_template_data']['IamInstanceProfile']['Arn'] = instance_profile_arn
