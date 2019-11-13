@@ -21,13 +21,39 @@ class AUTOSCALING:
             file=sys.stderr
         )
 
-        kwargs['launch_template_data'].pop('LaunchConfigurationName', None)
-        kwargs['launch_template_data'].pop('LaunchConfigurationARN', None)
-        kwargs['launch_template_data'].pop('ClassicLinkVPCSecurityGroups', None)
-        kwargs['launch_template_data'].pop('RamdiskId', None)
-        kwargs['launch_template_data'].pop('InstanceMonitoring', None)
-        kwargs['launch_template_data'].pop('CreatedTime', None)
-        kwargs['launch_template_data'].pop('KernelId', None)
+        allowed_keys = [
+            'KernelId',
+            'EbsOptimized',
+            'IamInstanceProfile',
+            'BlockDeviceMappings',
+            'NetworkInterfaces',
+            'ImageId',
+            'InstanceType',
+            'KeyName',
+            'Monitoring',
+            'Placement',
+            'RamDiskId',
+            'DisableApiTermination',
+            'InstanceInitiatedShutdownBehavior',
+            'UserData',
+            'TagSpecifications',
+            'ElasticGpuSpecifications',
+            'ElasticInferenceAccelerators',
+            'SecurityGroupIds',
+            'SecurityGroups',
+            'InstanceMarketOptions',
+            'CreditSpecification',
+            'CpuOptions',
+            'CapacityReservationSpecification',
+            'LicenseSpecifications',
+            'HibernationOptions'
+        ]
+
+        pop_keys = []
+        for key in kwargs['launch_template_data'].keys():
+            if key not in allowed_keys: pop_keys.append(key)
+        for key in pop_keys: kwargs['launch_template_data'].pop(key, None)
+
         instance_profile = kwargs['launch_template_data']['IamInstanceProfile'].split('/')[-1:][0]
 
         client = boto3.client('iam')
@@ -45,7 +71,7 @@ class AUTOSCALING:
         kwargs['launch_template_data'].pop('IamInstanceProfile', None)
         kwargs['launch_template_data']['IamInstanceProfile'] = {}
         kwargs['launch_template_data']['IamInstanceProfile']['Arn'] = instance_profile_arn
-        #kwargs['launch_template_data']['IamInstanceProfile']['Name'] = instance_profile_name
+        #kwargs['launch_template_data']['IamInstanceProfile']['InstanceProfileName'] = instance_profile_name
         return kwargs['launch_template_data']
 
 
