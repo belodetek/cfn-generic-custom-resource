@@ -49,10 +49,22 @@ class AUTOSCALING:
             'HibernationOptions'
         ]
 
-        pop_keys = []
-        for key in kwargs['launch_template_data'].keys():
-            if key not in allowed_keys: pop_keys.append(key)
+        pop_keys = [
+            key for key in kwargs['launch_template_data'].keys()
+            if key not in allowed_keys
+            or kwargs['launch_template_data'][key] == ''
+            or kwargs['launch_template_data'][key] == []
+            or kwargs['launch_template_data'][key] == {}
+        ]
         for key in pop_keys: kwargs['launch_template_data'].pop(key, None)
+
+        if self.verbose: print(
+            'pop_keys: {} launch_template_data: {}'.format(
+                pop_keys,
+                kwargs['launch_template_data']
+            ),
+            file=sys.stderr
+        )
 
         instance_profile = kwargs['launch_template_data']['IamInstanceProfile'].split('/')[-1:][0]
 
