@@ -4,7 +4,8 @@ compile-libs:
 	@mkdir -p build \
           && cat requirements.txt > build/requirements.txt \
           && cat Makefile > build/Makefile \
-          && cp generic_provider.py acm_pca.py cfnresponse.py build/ \
+          && cp generic_provider.py cfnresponse.py\
+          acm_pca.py autoscaling.py build/ \
           && docker run --rm \
 	  -v `pwd`/build:/src \
 	  -w /src \
