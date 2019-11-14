@@ -234,9 +234,13 @@ class Provider:
             agent_kwargs = json.loads(event[resource_key][args_key])
         except:
             try:
-                agent_kwargs = event[resource_key][args_key]
+                agent_kwargs = eval(event[resource_key][args_key].replace('\n', '').replace('\r', ''))
+                assert type(agent_kwargs) == type(dict())
             except:
-                agent_kwargs = {}
+                try:
+                    agent_kwargs = event[resource_key][args_key]
+                except:
+                    agent_kwargs = {}
         try:
             agent_response_node = event[resource_key]['AgentResponseNode']
         except:
@@ -392,9 +396,13 @@ class Provider:
             agent_kwargs = json.loads(event[resource_key]['AgentCreateArgs'])
         except:
             try:
-                agent_kwargs = event[resource_key]['AgentCreateArgs']
+                agent_kwargs = eval(event[resource_key]['AgentCreateArgs'].replace('\n', '').replace('\r', ''))
+                assert type(agent_kwargs) == type(dict())
             except:
-                agent_kwargs = {}
+                try:
+                    agent_kwargs = event[resource_key]['AgentCreateArgs']
+                except:
+                    agent_kwargs = {}
         try:
             agent_query_expr = event[resource_key]['AgentWaitQueryExpr']
         except:

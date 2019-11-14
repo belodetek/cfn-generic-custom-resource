@@ -161,11 +161,6 @@ class AUTOSCALING:
             file=sys.stderr
         )
 
-        try:
-            kwargs = eval(kwargs.replace('\n', '').replace('\r', ''))
-        except:
-            pass
-
         auto_scaling_group_name = kwargs['AutoScalingGroupName']
         mixed_instances_policy = kwargs['MixedInstancesPolicy']
 
