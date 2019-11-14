@@ -173,27 +173,6 @@ class AUTOSCALING:
             file=sys.stderr
         )
 
-##        mixed_instances_policy=$(echo '{
-##          "LaunchTemplate": {
-##            "LaunchTemplateSpecification": {
-##              "LaunchTemplateId": "lt-abcdef1234567890",
-##              "Version": "1"
-##            },
-##            "Overrides": [
-##              {
-##                "InstanceType": "t3.medium"
-##              },
-##              {
-##                "InstanceType": "t3a.medium"
-##              },
-##              ...
-##            ]
-##          },
-##          "InstancesDistribution": {
-##            "OnDemandBaseCapacity": 1,
-##            "OnDemandPercentageAboveBaseCapacity": 50
-##          }
-
         client = boto3.client('autoscaling')
         response = client.update_auto_scaling_group(
             AutoScalingGroupName=auto_scaling_group_name,

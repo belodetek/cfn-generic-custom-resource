@@ -7,6 +7,7 @@ import json
 import os
 import sys
 
+from ast import literal_eval
 from uuid import uuid4
 from jsonpath import jsonpath
 from time import sleep
@@ -234,7 +235,7 @@ class Provider:
             agent_kwargs = json.loads(event[resource_key][args_key])
         except:
             try:
-                agent_kwargs = eval(event[resource_key][args_key].replace('\n', '').replace('\r', ''))
+                agent_kwargs = literal_eval(event[resource_key][args_key])
                 assert type(agent_kwargs) == type(dict())
             except:
                 try:
@@ -396,7 +397,7 @@ class Provider:
             agent_kwargs = json.loads(event[resource_key]['AgentCreateArgs'])
         except:
             try:
-                agent_kwargs = eval(event[resource_key]['AgentCreateArgs'].replace('\n', '').replace('\r', ''))
+                agent_kwargs = literal_eval(event[resource_key]['AgentCreateArgs'])
                 assert type(agent_kwargs) == type(dict())
             except:
                 try:
