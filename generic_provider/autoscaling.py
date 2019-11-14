@@ -3,6 +3,7 @@
 import os
 import sys
 import boto3
+import json
 
 
 class AUTOSCALING:
@@ -162,13 +163,21 @@ class AUTOSCALING:
         )
 
         try:
-            auto_scaling_group_name = json.loads(kwargs['AutoScalingGroupName'])
+            kwargs = json.loads(kwargs)
         except:
-            auto_scaling_group_name = kwargs['AutoScalingGroupName']
-        try:
-            mixed_instances_policy = json.loads(kwargs['MixedInstancesPolicy'])
-        except:
-            mixed_instances_policy = kwargs['MixedInstancesPolicy']
+            pass
+
+        auto_scaling_group_name = kwargs['AutoScalingGroupName']
+        mixed_instances_policy = kwargs['MixedInstancesPolicy']
+
+        if self.verbose: print(
+            'kwargs: {} auto_scaling_group_name: {} mixed_instances_policy: {}'.format(
+                kwargs,
+                auto_scaling_group_name,
+                mixed_instances_policy
+            ),
+            file=sys.stderr
+        )
 
 ##        mixed_instances_policy=$(echo '{
 ##          "LaunchTemplate": {
