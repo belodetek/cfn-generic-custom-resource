@@ -3,7 +3,6 @@
 import os
 import sys
 import boto3
-import json
 
 
 class AUTOSCALING:
@@ -163,7 +162,7 @@ class AUTOSCALING:
         )
 
         try:
-            kwargs = json.loads(kwargs)
+            kwargs = eval(kwargs.replace('\n', '').replace('\r', ''))
         except:
             pass
 
