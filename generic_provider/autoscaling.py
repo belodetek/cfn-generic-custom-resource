@@ -161,8 +161,14 @@ class AUTOSCALING:
             file=sys.stderr
         )
 
-        auto_scaling_group_name = kwargs['AutoScalingGroupName']
-        mixed_instances_policy = kwargs['MixedInstancesPolicy']
+        try:
+            auto_scaling_group_name = json.loads(kwargs['AutoScalingGroupName'])
+        except:
+            auto_scaling_group_name = kwargs['AutoScalingGroupName']
+        try:
+            mixed_instances_policy = json.loads(kwargs['MixedInstancesPolicy'])
+        except:
+            mixed_instances_policy = kwargs['MixedInstancesPolicy']
 
 ##        mixed_instances_policy=$(echo '{
 ##          "LaunchTemplate": {
