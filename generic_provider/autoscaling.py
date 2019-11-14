@@ -4,6 +4,8 @@ import os
 import sys
 import boto3
 
+from traceback import print_exc
+
 
 class AUTOSCALING:
 
@@ -67,7 +69,8 @@ class AUTOSCALING:
         )
 
         instance_profile = kwargs['launch_template_data']['IamInstanceProfile'].split('/')[-1:][0]
-
+        kwargs['launch_template_data'].pop('IamInstanceProfile', None)
+        kwargs['launch_template_data']['IamInstanceProfile'] = {}
         client = boto3.client('iam')
         response = client.get_instance_profile(
             InstanceProfileName=instance_profile
@@ -78,12 +81,25 @@ class AUTOSCALING:
             file=sys.stderr
         )
 
-        instance_profile_arn = response['InstanceProfile']['Arn']
-        instance_profile_name = response['InstanceProfile']['InstanceProfileName']
-        kwargs['launch_template_data'].pop('IamInstanceProfile', None)
-        kwargs['launch_template_data']['IamInstanceProfile'] = {}
-        kwargs['launch_template_data']['IamInstanceProfile']['Arn'] = instance_profile_arn
-        #kwargs['launch_template_data']['IamInstanceProfile']['InstanceProfileName'] = instance_profile_name
+        kwargs['launch_template_data']['IamInstanceProfile']['Arn'] = response['InstanceProfile']['Arn']
+
+        # fix wrong key: SecurityGroups instead of SecurityGroupIds (VPC)
+        try:
+            assert True in [
+                True for group in kwargs['launch_template_data']['SecurityGroups']
+                if group.split('-')[:1][0] == 'sg'
+            ]
+            kwargs['launch_template_data']['SecurityGroupIds'] = kwargs['launch_template_data']['SecurityGroups']
+            kwargs['launch_template_data'].pop('SecurityGroups', None)
+        except:
+            # default VPC
+            pass
+
+        if self.verbose: print(
+            'launch_template_data: {}'.format(kwargs['launch_template_data']),
+            file=sys.stderr
+        )
+
         return kwargs['launch_template_data']
 
 
