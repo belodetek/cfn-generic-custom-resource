@@ -6,6 +6,7 @@ import boto3
 import json
 import os
 import sys
+import re
 
 from ast import literal_eval
 from uuid import uuid4
@@ -448,6 +449,73 @@ class Provider:
         return (PhysicalResourceId, responseData)
 
 
+    @retry(wait_exponential_multiplier=1000, wait_exponential_max=10000, stop_max_delay=30000)
+    def handle_transform_event(self, agent, event):
+        try:
+            agent_kwargs = json.loads(event['params']['AgentArgs'])
+        except:
+            try:
+                agent_kwargs = literal_eval(event['params']['AgentArgs'])
+                assert type(agent_kwargs) == type(dict())
+            except:
+                try:
+                    agent_kwargs = event['params']['AgentArgs']
+                except:
+                    agent_kwargs = {}
+        try:
+            agent_response_node = event['params']['AgentResponseNode']
+        except:
+            agent_response_node = None
+        try:
+            match = re.search('^.*::(.*)$', event['transformId'])
+            agent_method = match .group(1).lower()
+            assert agent_method
+        except:
+            agent_method = 'get_caller_identity'
+        try:
+            agent_attr = getattr(agent, agent_method)
+        except:
+            if self.verbose: print_exc()
+            agent_attr = None
+        transform = {
+            'requestId': event['requestId'],
+            'status': 'failure'
+        }
+        if agent_attr:
+            response = {}
+            print(
+                'agent_method={}, agent_kwargs={}, agent_attr={} agent_response_node={}'.format(
+                    agent_method,
+                    agent_kwargs,
+                    agent_attr,
+                    agent_response_node
+                ),
+                file=sys.stderr
+            )
+            response = self.get_response(agent_attr, **agent_kwargs)
+            print('response={}'.format(response), file=sys.stderr)
+            try:
+                responseData = response[agent_response_node]
+                assert responseData, 'responseData from response[agent_response_node]'
+            except:
+                if self.verbose: print_exc()
+                try:
+                    responseData = response
+                    assert responseData
+                except:
+                    if self.verbose: print_exc()
+                    responseData = {}
+            transform['fragment'] = responseData
+            transform['status'] = 'success'
+            print(
+                'responseData={} transform={}'.format(
+                    responseData,
+                    transform
+                ),
+                file=sys.stderr
+            )
+        return transform
+
     def handle_event(self, event=None, context=None):
         try:
             no_echo = event['ResourceProperties']['NoEcho'].lower()
@@ -507,21 +575,53 @@ class Provider:
         responseData = {}
 
         try:
-            agent_service = event['ResourceProperties']['AgentService']
+            try:
+                agent_service = event['ResourceProperties']['AgentService']
+            except:
+                try:
+                    agent_service = event['params']['AgentService']
+                except:
+                    agent_service = 'sts'
             try:
                 agent_type = event['ResourceProperties']['AgentType']
             except:
-                agent_type = 'client'
-            StackId = event['StackId']
-            ResponseURL = event['ResponseURL']
-            RequestType = event['RequestType']
-            ResourceType = event['ResourceType']
-            RequestId = event['RequestId']
-            LogicalResourceId = event['LogicalResourceId']
-            CreateFailedResourceId = '{}-CREATE_FAILED'.format(LogicalResourceId)
+                try:
+                    agent_type = event['params']['AgentType']
+                    assert agent_type
+                except:
+                    agent_type = 'client'
+            try:
+                StackId = event['StackId']
+            except:
+                StackId = None
+            try:
+                ResponseURL = event['ResponseURL']
+            except:
+                ResponseURL = None
+            try:
+                RequestType = event['RequestType']
+            except:
+                RequestType = None
+            try:
+                ResourceType = event['ResourceType']
+            except:
+                ResourceType = None
+            try:
+                RequestId = event['RequestId']
+            except:
+                RequestId = event['requestId']
+            try:
+                LogicalResourceId = event['LogicalResourceId']
+            except:
+                LogicalResourceId = None
+            try:
+                CreateFailedResourceId = '{}-CREATE_FAILED'.format(LogicalResourceId)
+            except:
+                CreateFailedResourceId = None
             if agent_type == 'client':
                 agent = self.session.client(agent_service, **kwargs)
-            if agent_type == 'resource':
+            # TBC: handle transform macros?
+            if agent_type == 'resource' and 'transformId' not in event.keys(): 
                 try:
                     agent = self.session.resource(agent_service, **kwargs)
                     (physicalResourceId, responseData) = self.handle_resource_event(
@@ -563,6 +663,9 @@ class Provider:
             )
             return False
 
+        ''' Transform: runs when called by CFN transform macro(s)'''
+        if 'transformId' in event.keys():
+            return self.handle_transform_event(agent, event)
 
         ''' Update: runs only if AgentUpdateMethod is present otherwise the old
             resource is deleted and a new one is created. No backups are taken,

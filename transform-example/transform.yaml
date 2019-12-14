@@ -1,0 +1,40 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: 'CloudFormation transform resources'
+
+Conditions:
+  HasNull: !Equals [ 'true', 'false' ]
+
+Resources:
+  NullResource:
+    Type: 'Custom::NullResource'
+    Condition: HasNull
+
+Outputs:
+  StackName:
+    Value: !Ref 'AWS::StackName'
+    Export:
+      Name: !Sub 'StackName-${AWS::StackName}'
+  CurrentTimestamp:
+    Description: 'UTC time in seconds since epoch'
+    Value:
+      Fn::Transform:
+        Name: UTCTIME
+        Parameters:
+          AgentType: custom
+          AgentService: utilities
+          AgentCreateMethod: utctime
+    Export:
+      Name: !Sub 'CurrentTimestamp-${AWS::StackName}'
+  UUID4:
+    Description: 'UUID v4'
+    Value:
+      Fn::Transform:
+        Name: UUID4
+        Parameters:
+          AgentType: custom
+          AgentService: utilities
+          AgentArgs:
+            foo: bar
+    Export:
+      Name: !Sub 'GUID-${AWS::StackName}'

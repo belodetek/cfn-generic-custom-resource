@@ -1,0 +1,89 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: 'CloudFormation transform resources'
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+    - Label:
+        default: 'Common parameters'
+      Parameters:
+      - NotificationTopic
+      - TimeoutInMinutes
+
+Parameters:
+  NotificationTopic:
+    Description: 'Specify optional SNS topic for initial CloudFormation event notifications.'
+    Type: String
+    Default: ''
+  TimeoutInMinutes:
+    Description: 'Specify optional timeout in minutes for stack creation.'
+    Type: Number
+    Default: 60
+
+Conditions:
+  HasNotifySNS: !Not [ !Equals [ '', !Ref 'NotificationTopic' ]]
+
+Resources:
+  LambdaStack:
+    Type: 'AWS::CloudFormation::Stack'
+    Properties:
+      TemplateURL: 'lambda.yaml'
+      Parameters:
+        NameTag: !Sub '${AWS::StackName}'
+      NotificationARNs:
+      - !If [ HasNotifySNS, !Ref 'NotificationTopic', !Ref 'AWS::NoValue' ]
+      TimeoutInMinutes: !Ref 'TimeoutInMinutes'
+      Tags:
+      - Key: Name
+        Value: !Sub '${AWS::StackName}'
+
+  UUID4:
+    Type: 'AWS::CloudFormation::Transform'
+    Properties:
+      Name: !Sub '${AWS::AccountId}::UUID4'
+      Description: 'Generates UUID4'
+      RoutingTable:
+        '*': latest
+      Versions:
+      - VersionName: latest
+        Description: 'latest UUID4 generator'
+        FunctionName: !Sub '${LambdaStack.Outputs.CustomResourceLambdaArn}'
+      ExecutionPolicy:
+        Version: 2012-10-17
+        Id: AllowOtherAccountPolicy
+        Statement:
+        - Sid: AllowExecution
+          Effect: Allow
+          Principal:
+            AWS: !Sub '${AWS::AccountId}'
+          Action: 'cloudformation:CreateChangeSet'
+          Resource: !Sub 'arn:*:cloudformation:${AWS::Region}:${AWS::AccountId}:transform/UUID4'
+
+  UTCTIME:
+    Type: 'AWS::CloudFormation::Transform'
+    Properties:
+      Name: !Sub '${AWS::AccountId}::UTCTIME'
+      Description: 'Generates time stamp in seconds since epoch'
+      RoutingTable:
+        '*': latest
+      Versions:
+      - VersionName: latest
+        Description: 'latest UTCTIME generator'
+        FunctionName: !Sub '${LambdaStack.Outputs.CustomResourceLambdaArn}'
+      ExecutionPolicy:
+        Version: 2012-10-17
+        Id: AllowOtherAccountPolicy
+        Statement:
+        - Sid: AllowExecution
+          Effect: Allow
+          Principal:
+            AWS: !Sub '${AWS::AccountId}'
+          Action: 'cloudformation:CreateChangeSet'
+          Resource: !Sub 'arn:*:cloudformation:${AWS::Region}:${AWS::AccountId}:transform/UTCTIME'
+
+Outputs:
+  StackName:
+    Value: !Ref 'AWS::StackName'
+    Export:
+      Name: !Sub 'StackName-${AWS::StackName}'

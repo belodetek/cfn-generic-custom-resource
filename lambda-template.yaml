@@ -126,6 +126,13 @@ Resources:
       - Key: Name
         Value: !Sub '${NameTag}'
 
+  CustomResourceLambdaPermission:
+    Type: 'AWS::Lambda::Permission'
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      FunctionName: !Sub '${CustomResourceLambda.Arn}'
+      Principal: 'cloudformation.amazonaws.com'
+
 
 Outputs:
   StackName:
