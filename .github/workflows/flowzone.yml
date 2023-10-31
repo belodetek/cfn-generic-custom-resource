@@ -1,0 +1,41 @@
+---
+name: Flowzone
+
+on:
+  pull_request:
+    types: [opened, synchronize, closed]
+    branches: [main, master]
+  # allow external contributions to use secrets within trusted code
+  pull_request_target:
+    types: [opened, synchronize, closed]
+    branches: [main, master]
+
+jobs:
+  flowzone:
+    name: Flowzone
+    uses: product-os/flowzone/.github/workflows/flowzone.yml@master
+    # prevent duplicate workflow executions for pull_request and pull_request_target
+    if: |
+      (
+        github.event.pull_request.head.repo.full_name == github.repository &&
+        github.event_name == 'pull_request'
+      ) || (
+        github.event.pull_request.head.repo.full_name != github.repository &&
+        github.event_name == 'pull_request_target'
+      )
+    secrets:
+      DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+      GH_APP_PRIVATE_KEY: ${{ secrets.GH_APP_PRIVATE_KEY }}
+    with:
+      working_directory: generic_provider
+      repo_config: true
+      repo_homepage: "https://anton.belodedenko.me/generic-custom-resource-provider"
+      repo_description: "CloudFormation generic custom resource provider."
+      docker_images: |
+        ghcr.io/belodetek/cfn-generic-provider
+      docker_runs_on: >
+        {
+          "linux/arm64": ["ubuntu-latest"],
+          "linux/amd64": ["ubuntu-latest"]
+        }

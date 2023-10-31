@@ -9,7 +9,7 @@ compile-libs:
           && docker run --rm \
 	  -v `pwd`/build:/src \
 	  -w /src \
-	  lambci/lambda:build-python3.7 \
+	  lambci/lambda:build-python3.8 \
 	  bash -c '''yum update -y\
 	    && yum groupinstall "Development Tools" -y\
 	    && yum install -y ibffi openssl-devel\
