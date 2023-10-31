@@ -3,10 +3,12 @@
 !.ignoresync
 !.ignoremake
 !.lambdaignore
-!Makefile
-!cfnresponse.py
-!generic_provider.py
-!requirements.txt
-!tests.py
 !acm_pca.py
 !autoscaling.py
+!cfnresponse.py
+!docker-bake.hcl
+!Dockerfile
+!generic_provider.py
+!Makefile
+!requirements.txt
+!tests.py
