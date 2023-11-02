@@ -1,4 +1,15 @@
 - commits:
+    - subject: push to AWS/ECR
+      hash: 7cd5b4a6ccbef36f4b38cf263fed97e83fc778c1
+      body: ""
+      footer:
+        change-type: patch
+      author: ab77
+      nested: []
+  version: 0.0.3
+  title: ""
+  date: 2023-11-02T18:08:21.483Z
+- commits:
     - subject: Flowzone
       hash: 7a8f6401bb8bcbd05f8302dc7e8d876f821af5c7
       body: ""
