@@ -52,7 +52,8 @@ jobs:
       repo_description: "CloudFormation generic custom resource provider."
       docker_images: |
         ghcr.io/belodetek/cfn-generic-provider,
-        public.ecr.aws/k4v3r5y6/cfn-generic-provider
+        public.ecr.aws/k4v3r5y6/cfn-generic-provider,
+        312433241086.dkr.ecr.us-east-1.amazonaws.com/cfn-generic-provider
       docker_runs_on: >
         {
           "linux/arm64": ["ubuntu-latest"],
