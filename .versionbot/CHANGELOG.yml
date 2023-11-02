@@ -1,4 +1,15 @@
 - commits:
+    - subject: build separate arch targets for AWS/Lambda(s)
+      hash: 1a7df6473a4498bee637f289c55c7f2584eeb495
+      body: ""
+      footer:
+        change-type: patch
+      author: ab77
+      nested: []
+  version: 0.0.5
+  title: ""
+  date: 2023-11-02T21:32:19.551Z
+- commits:
     - subject: push to AWS/ECR (private)
       hash: 3010d27a13bd0faeb7cf15d557618cc65c113846
       body: ""
