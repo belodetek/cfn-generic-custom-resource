@@ -5,3 +5,15 @@ target "default" {
     "linux/arm64"
   ]
 }
+
+target "amd64" {
+  platforms = [
+    "linux/amd64"
+  ]
+}
+
+target "arm64" {
+  platforms = [
+    "linux/arm64"
+  ]
+}
