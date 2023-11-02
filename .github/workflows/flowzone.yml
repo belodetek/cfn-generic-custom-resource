@@ -10,10 +10,28 @@ on:
     types: [opened, synchronize, closed]
     branches: [main, master]
 
+# https://docs.github.com/en/actions/security-guides/automatic-token-authentication
+# https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#permissions
+# https://docs.github.com/en/actions/deployment/security-hardening-your-deployments/about-security-hardening-with-openid-connect#adding-permissions-settings
+permissions:
+  actions: read
+  checks: read
+  contents: read
+  deployments: read
+  id-token: write # AWS GitHub OIDC required: write
+  issues: read
+  discussions: read
+  packages: write
+  pages: read
+  pull-requests: read
+  repository-projects: read
+  security-events: read
+  statuses: read
+
 jobs:
   flowzone:
     name: Flowzone
-    uses: product-os/flowzone/.github/workflows/flowzone.yml@master
+    uses: product-os/flowzone/.github/workflows/flowzone.yml@ab77/aws-ecr-public
     # prevent duplicate workflow executions for pull_request and pull_request_target
     if: |
       (
@@ -33,7 +51,8 @@ jobs:
       repo_homepage: "https://anton.belodedenko.me/generic-custom-resource-provider"
       repo_description: "CloudFormation generic custom resource provider."
       docker_images: |
-        ghcr.io/belodetek/cfn-generic-provider
+        ghcr.io/belodetek/cfn-generic-provider,
+        public.ecr.aws/k4v3r5y6/cfn-generic-provider
       docker_runs_on: >
         {
           "linux/arm64": ["ubuntu-latest"],
