@@ -1,4 +1,15 @@
 - commits:
+    - subject: disable provenance (single arch images)
+      hash: 6b0675b978d3c7a86263cbbc2a55213f7d00df00
+      body: ""
+      footer:
+        change-type: patch
+      author: ab77
+      nested: []
+  version: 0.0.6
+  title: ""
+  date: 2023-11-02T23:23:58.813Z
+- commits:
     - subject: build separate arch targets for AWS/Lambda(s)
       hash: 1a7df6473a4498bee637f289c55c7f2584eeb495
       body: ""
