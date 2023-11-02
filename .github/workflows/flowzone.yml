@@ -57,12 +57,14 @@ jobs:
         ghcr.io/belodetek/cfn-generic-provider,
         public.ecr.aws/k4v3r5y6/cfn-generic-provider,
         312433241086.dkr.ecr.us-east-1.amazonaws.com/cfn-generic-provider
-      # .. or multi-arch :/
-      # https://repost.aws/questions/QUIZjd2sL_TtCuoqtg5Q30LA/does-lambda-not-support-multi-architecture-container-images-manifests
       docker_runs_on: >
         {
           "linux/arm64": ["ubuntu-latest"],
           "linux/amd64": ["ubuntu-latest"]
         }
+      # .. or multi-arch :/
+      # https://stackoverflow.com/a/76323686/1559300
+      # https://github.com/docker/buildx/issues/1533
+      # https://repost.aws/questions/QUIZjd2sL_TtCuoqtg5Q30LA/does-lambda-not-support-multi-architecture-container-images-manifests
       bake_targets: |
         default,amd64,arm64
