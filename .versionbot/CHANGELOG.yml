@@ -1,4 +1,15 @@
 - commits:
+    - subject: push to AWS/ECR (private)
+      hash: 3010d27a13bd0faeb7cf15d557618cc65c113846
+      body: ""
+      footer:
+        change-type: patch
+      author: ab77
+      nested: []
+  version: 0.0.4
+  title: ""
+  date: 2023-11-02T20:42:12.956Z
+- commits:
     - subject: push to AWS/ECR
       hash: 7cd5b4a6ccbef36f4b38cf263fed97e83fc778c1
       body: ""
