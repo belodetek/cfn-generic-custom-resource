@@ -1,4 +1,15 @@
 - commits:
+    - subject: revert
+      hash: ad644bb241d57e2b169ab3b99a4861a8601902af
+      body: ""
+      footer:
+        change-type: patch
+      author: ab77
+      nested: []
+  version: 0.0.7
+  title: ""
+  date: 2023-11-03T00:25:08.936Z
+- commits:
     - subject: disable provenance (single arch images)
       hash: 6b0675b978d3c7a86263cbbc2a55213f7d00df00
       body: ""
