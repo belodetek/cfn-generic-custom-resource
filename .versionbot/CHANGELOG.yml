@@ -1,4 +1,17 @@
 - commits:
+    - subject: patch aws-auth configmap
+      hash: 4baa0f7999454cdd8bb9347a7ed3cc823b96d566
+      body: |
+        * use correct credentials (eks)
+        * {delete,append}_iam_role_trust_policy
+      footer:
+        change-type: patch
+      author: ab77
+      nested: []
+  version: 0.0.8
+  title: ""
+  date: 2023-11-07T23:33:37.628Z
+- commits:
     - subject: revert
       hash: ad644bb241d57e2b169ab3b99a4861a8601902af
       body: ""
