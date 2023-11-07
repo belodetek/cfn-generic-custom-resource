@@ -4,3 +4,4 @@ jsonpath
 retrying
 pyOpenSSL
 requests
+kubernetes

@@ -5,6 +5,8 @@
 !.lambdaignore
 !acm_pca.py
 !autoscaling.py
+!eks.py
+!iam.py
 !cfnresponse.py
 !docker-bake.hcl
 !Dockerfile

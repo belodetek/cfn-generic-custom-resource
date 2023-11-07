@@ -31,7 +31,7 @@ permissions:
 jobs:
   flowzone:
     name: Flowzone
-    uses: product-os/flowzone/.github/workflows/flowzone.yml@ab77/aws-ecr-public
+    uses: product-os/flowzone/.github/workflows/flowzone.yml@master
     # prevent duplicate workflow executions for pull_request and pull_request_target
     if: |
       (
