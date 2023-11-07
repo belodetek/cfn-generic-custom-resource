@@ -11,7 +11,7 @@ COPY requirements.txt .
 
 RUN pip install -r requirements.txt -t .
 
-COPY generic_provider.py cfnresponse.py acm_pca.py autoscaling.py .
+COPY generic_provider.py cfnresponse.py acm_pca.py autoscaling.py eks.py iam.py .
 
 
 # --- runtime
