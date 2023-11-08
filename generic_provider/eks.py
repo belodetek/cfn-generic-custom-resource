@@ -9,6 +9,7 @@ import yaml
 from botocore.signers import RequestSigner
 from kubernetes import client as k8s_client
 from kubernetes.client.rest import ApiException
+from uuid import uuid4
 
 
 class EKS:
@@ -138,14 +139,19 @@ class EKS:
         region_name = self.region_name
         role_arn = kwargs['RoleArn']
 
-        aws_auth_configmap = self.get_aws_auth_configmap(region_name, cluster_name)
-        map_roles = yaml.safe_load(aws_auth_configmap.data['mapRoles'])
+        response_data = {'uid': str(uuid4())}
+        try:
+            aws_auth_configmap = self.get_aws_auth_configmap(region_name, cluster_name)
+            map_roles = yaml.safe_load(aws_auth_configmap.data['mapRoles'])
 
-        for idx in [i for i, x in enumerate(map_roles) if x['rolearn'] == role_arn]:
-            del map_roles[idx]
-        aws_auth_configmap.data['mapRoles'] = yaml.dump(map_roles)
-        response = self.patch_aws_auth_configmap(region_name, cluster_name, aws_auth_configmap)
-        return {'uid': response.metadata.uid}
+            for idx in [i for i, x in enumerate(map_roles) if x['rolearn'] == role_arn]:
+                del map_roles[idx]
+            aws_auth_configmap.data['mapRoles'] = yaml.dump(map_roles)
+            response = self.patch_aws_auth_configmap(region_name, cluster_name, aws_auth_configmap)
+            response_data = {'uid': response.metadata.uid}
+        except Exception as e:
+            print(f'Exception when calling patch_aws_auth_configmap: {e}\n')
+        return response_data
 
     def get_service_account(self, region_name, cluster_name, service_account, namespace):
         v1 = self.authenticate_eks(region_name, cluster_name)
@@ -183,6 +189,10 @@ class EKS:
             namespace
         )
 
-        body.metadata.annotations['eks.amazonaws.com/role-arn'] = role_arn
+        try:
+            body.metadata.annotations['eks.amazonaws.com/role-arn'] = role_arn
+        except TypeError:
+            body.metadata.annotations = {'eks.amazonaws.com/role-arn': role_arn}
+
         response = self.patch_service_account(region_name, cluster_name, service_account, namespace, body)
         return {'uid': response.metadata.uid}
