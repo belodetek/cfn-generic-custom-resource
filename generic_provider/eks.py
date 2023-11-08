@@ -189,6 +189,10 @@ class EKS:
             namespace
         )
 
-        body.metadata.annotations['eks.amazonaws.com/role-arn'] = role_arn
+        try:
+            body.metadata.annotations['eks.amazonaws.com/role-arn'] = role_arn
+        except TypeError:
+            body.metadata.annotations = {'eks.amazonaws.com/role-arn': role_arn}
+
         response = self.patch_service_account(region_name, cluster_name, service_account, namespace, body)
         return {'uid': response.metadata.uid}
