@@ -1,4 +1,15 @@
 - commits:
+    - subject: update badges
+      hash: 7fdc95c2864a685a717a6141dc6acadc275a9af0
+      body: ""
+      footer:
+        change-type: patch
+      author: Anton Belodedenko
+      nested: []
+  version: 0.0.10
+  title: ""
+  date: 2023-11-09T01:19:42.359Z
+- commits:
     - subject: delete always succeeds
       hash: b74ed1122094d862273f614436c5290378e5a525
       body: ""
