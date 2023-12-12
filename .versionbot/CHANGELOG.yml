@@ -1,4 +1,15 @@
 - commits:
+    - subject: patch services to set SSL certificate
+      hash: 9d0ecf99e3e3405cc32c2cd4e43d6e303ce8788a
+      body: ""
+      footer:
+        change-type: patch
+      author: ab77
+      nested: []
+  version: 0.0.11
+  title: ""
+  date: 2023-12-12T22:31:46.122Z
+- commits:
     - subject: update badges
       hash: 7fdc95c2864a685a717a6141dc6acadc275a9af0
       body: ""
