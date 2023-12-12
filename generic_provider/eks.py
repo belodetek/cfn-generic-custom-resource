@@ -196,3 +196,47 @@ class EKS:
 
         response = self.patch_service_account(region_name, cluster_name, service_account, namespace, body)
         return {'uid': response.metadata.uid}
+
+    def get_service(self, region_name, cluster_name, service, namespace):
+        v1 = self.authenticate_eks(region_name, cluster_name)
+        try:
+            return v1.read_namespaced_service(service, namespace)
+        except ApiException as e:
+            print(f'Exception when calling CoreV1Api->read_namespaced_service: {e}\n')
+            return
+
+    def patch_service(self, region_name, cluster_name, service, namespace, body):
+        v1 = self.authenticate_eks(region_name, cluster_name)
+        try:
+            response = v1.patch_namespaced_service(service, namespace, body)
+        except ApiException as e:
+            print(f'Exception when calling CoreV1Api->patch_namespaced_service: {e}\n')
+            return
+
+        if self.verbose: print(
+            'response: {}'.format(response),
+            file=sys.stderr
+        )
+        return response
+
+    def update_service_certificate(self, *args, **kwargs):
+        cluster_name = kwargs['ClusterName']
+        region_name = self.region_name
+        service = kwargs['Service']
+        namespace = kwargs['Namespace']
+        certificate = kwargs['Certificate']
+
+        body = self.get_service(
+            region_name,
+            cluster_name,
+            service,
+            namespace
+        )
+
+        try:
+            body.metadata.annotations['service.beta.kubernetes.io/aws-load-balancer-ssl-cert'] = certificate
+        except TypeError:
+            body.metadata.annotations = {'service.beta.kubernetes.io/aws-load-balancer-ssl-cert': certificate}
+
+        response = self.patch_service(region_name, cluster_name, service, namespace, body)
+        return {'uid': response.metadata.uid}
