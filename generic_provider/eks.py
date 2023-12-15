@@ -240,3 +240,47 @@ class EKS:
 
         response = self.patch_service(region_name, cluster_name, service, namespace, body)
         return {'uid': response.metadata.uid}
+
+    def get_ingress(self, region_name, cluster_name, ingress, namespace):
+        v1 = self.authenticate_eks(region_name, cluster_name)
+        try:
+            return v1.read_namespaced_ingress(ingress, namespace)
+        except ApiException as e:
+            print(f'Exception when calling CoreV1Api->read_namespaced_ingress: {e}\n')
+            return
+
+    def patch_ingress(self, region_name, cluster_name, ingress, namespace, body):
+        v1 = self.authenticate_eks(region_name, cluster_name)
+        try:
+            response = v1.patch_namespaced_ingress(ingress, namespace, body)
+        except ApiException as e:
+            print(f'Exception when calling CoreV1Api->patch_namespaced_ingress: {e}\n')
+            return
+
+        if self.verbose: print(
+            'response: {}'.format(response),
+            file=sys.stderr
+        )
+        return response
+
+    def update_ingress_certificate(self, *args, **kwargs):
+        cluster_name = kwargs['ClusterName']
+        region_name = self.region_name
+        ingress = kwargs['Ingress']
+        namespace = kwargs['Namespace']
+        certificate = kwargs['Certificate']
+
+        body = self.get_ingress(
+            region_name,
+            cluster_name,
+            ingress,
+            namespace
+        )
+
+        try:
+            body.metadata.annotations['alb.ingress.kubernetes.io/certificate-arn'] = certificate
+        except TypeError:
+            body.metadata.annotations = {'alb.ingress.kubernetes.io/certificate-arn': certificate}
+
+        response = self.patch_ingress(region_name, cluster_name, ingress, namespace, body)
+        return {'uid': response.metadata.uid}
