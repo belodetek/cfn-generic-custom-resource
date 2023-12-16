@@ -1,4 +1,15 @@
 - commits:
+    - subject: update ingress certificates
+      hash: db6978581c07550ed0ab3db3df475966623981cc
+      body: ""
+      footer:
+        change-type: patch
+      author: ab77
+      nested: []
+  version: 0.0.12
+  title: ""
+  date: 2023-12-16T04:16:00.968Z
+- commits:
     - subject: patch services to set SSL certificate
       hash: 9d0ecf99e3e3405cc32c2cd4e43d6e303ce8788a
       body: ""
