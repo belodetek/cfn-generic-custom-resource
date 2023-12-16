@@ -89,10 +89,11 @@ class EKS:
             'configuration: {}'.format(configuration.__dict__),
             file=sys.stderr
         )
-        return k8s_client.CoreV1Api(k8s_client.ApiClient(configuration))
+        return k8s_client.ApiClient(configuration)
 
     def get_aws_auth_configmap(self, region_name, cluster_name):
-        v1 = self.authenticate_eks(region_name, cluster_name)
+        v1 = k8s_client.CoreV1Api(self.authenticate_eks(region_name, cluster_name))
+
         try:
             return v1.read_namespaced_config_map('aws-auth', 'kube-system')
         except ApiException as e:
@@ -100,7 +101,7 @@ class EKS:
             return
 
     def patch_aws_auth_configmap(self, region_name, cluster_name, aws_auth_configmap):
-        v1 = self.authenticate_eks(region_name, cluster_name)
+        v1 = k8s_client.CoreV1Api(self.authenticate_eks(region_name, cluster_name))
         try:
             response = v1.replace_namespaced_config_map('aws-auth', 'kube-system', aws_auth_configmap)
         except ApiException as e:
@@ -154,7 +155,7 @@ class EKS:
         return response_data
 
     def get_service_account(self, region_name, cluster_name, service_account, namespace):
-        v1 = self.authenticate_eks(region_name, cluster_name)
+        v1 = k8s_client.CoreV1Api(self.authenticate_eks(region_name, cluster_name))
         try:
             return v1.read_namespaced_service_account(service_account, namespace)
         except ApiException as e:
@@ -162,7 +163,7 @@ class EKS:
             return
 
     def patch_service_account(self, region_name, cluster_name, service_account, namespace, body):
-        v1 = self.authenticate_eks(region_name, cluster_name)
+        v1 = k8s_client.CoreV1Api(self.authenticate_eks(region_name, cluster_name))
         try:
             response = v1.patch_namespaced_service_account(service_account, namespace, body)
         except ApiException as e:
@@ -198,7 +199,7 @@ class EKS:
         return {'uid': response.metadata.uid}
 
     def get_service(self, region_name, cluster_name, service, namespace):
-        v1 = self.authenticate_eks(region_name, cluster_name)
+        v1 = k8s_client.CoreV1Api(self.authenticate_eks(region_name, cluster_name))
         try:
             return v1.read_namespaced_service(service, namespace)
         except ApiException as e:
@@ -206,7 +207,7 @@ class EKS:
             return
 
     def patch_service(self, region_name, cluster_name, service, namespace, body):
-        v1 = self.authenticate_eks(region_name, cluster_name)
+        v1 = k8s_client.CoreV1Api(self.authenticate_eks(region_name, cluster_name))
         try:
             response = v1.patch_namespaced_service(service, namespace, body)
         except ApiException as e:
@@ -239,4 +240,48 @@ class EKS:
             body.metadata.annotations = {'service.beta.kubernetes.io/aws-load-balancer-ssl-cert': certificate}
 
         response = self.patch_service(region_name, cluster_name, service, namespace, body)
+        return {'uid': response.metadata.uid}
+
+    def get_ingress(self, region_name, cluster_name, ingress, namespace):
+        v1 = k8s_client.NetworkingV1Api(self.authenticate_eks(region_name, cluster_name))
+        try:
+            return v1.read_namespaced_ingress(ingress, namespace)
+        except ApiException as e:
+            print(f'Exception when calling CoreV1Api->read_namespaced_ingress: {e}\n')
+            return
+
+    def patch_ingress(self, region_name, cluster_name, ingress, namespace, body):
+        v1 = k8s_client.NetworkingV1Api(self.authenticate_eks(region_name, cluster_name))
+        try:
+            response = v1.patch_namespaced_ingress(ingress, namespace, body)
+        except ApiException as e:
+            print(f'Exception when calling CoreV1Api->patch_namespaced_ingress: {e}\n')
+            return
+
+        if self.verbose: print(
+            'response: {}'.format(response),
+            file=sys.stderr
+        )
+        return response
+
+    def update_ingress_certificate(self, *args, **kwargs):
+        cluster_name = kwargs['ClusterName']
+        region_name = self.region_name
+        ingress = kwargs['Ingress']
+        namespace = kwargs['Namespace']
+        certificate = kwargs['Certificate']
+
+        body = self.get_ingress(
+            region_name,
+            cluster_name,
+            ingress,
+            namespace
+        )
+
+        try:
+            body.metadata.annotations['alb.ingress.kubernetes.io/certificate-arn'] = certificate
+        except TypeError:
+            body.metadata.annotations = {'alb.ingress.kubernetes.io/certificate-arn': certificate}
+
+        response = self.patch_ingress(region_name, cluster_name, ingress, namespace, body)
         return {'uid': response.metadata.uid}
