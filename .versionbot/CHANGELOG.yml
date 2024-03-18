@@ -1,4 +1,15 @@
 - commits:
+    - subject: remove travis ci badge
+      hash: 4ed39695478b87fc5dc2d057dc6f4cf093404dc1
+      body: ""
+      footer:
+        change-type: patch
+      author: Anton Belodedenko
+      nested: []
+  version: 0.0.13
+  title: ""
+  date: 2024-03-18T22:11:14.854Z
+- commits:
     - subject: update ingress certificates
       hash: db6978581c07550ed0ab3db3df475966623981cc
       body: ""
