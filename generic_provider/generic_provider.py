@@ -496,7 +496,8 @@ class Provider:
                 ),
                 file=sys.stderr
             )
-        except:
+        except Exception as e:
+            if self.verbose: print_exc()
             if not self.profile:
                 kwargs['aws_access_key_id'] = os.getenv('AWS_ACCESS_KEY_ID')
                 kwargs['aws_secret_access_key'] = os.getenv('AWS_SECRET_ACCESS_KEY')
