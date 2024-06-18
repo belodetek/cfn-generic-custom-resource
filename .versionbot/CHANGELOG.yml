@@ -1,4 +1,15 @@
 - commits:
+    - subject: log exception
+      hash: 9659ff6ce114feba9dd60f203a8f3b5c04fe5477
+      body: ""
+      footer:
+        change-type: patch
+      author: Anton Belodedenko
+      nested: []
+  version: 0.0.14
+  title: ""
+  date: 2024-06-18T00:29:43.196Z
+- commits:
     - subject: remove travis ci badge
       hash: 4ed39695478b87fc5dc2d057dc6f4cf093404dc1
       body: ""
