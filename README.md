@@ -60,13 +60,19 @@ For more information, please read this blog [post](https://anton.belodedenko.me/
 #### install requirements (venv)
 > 📝 AWS Lambda provided boto3 library doesn't support Client VPN resources at the time of writing, so we need to package it with the code
 
-    sudo pip install venv --user || sudo pip install virtualenv --user\
-      && pushd generic_provider\
-      && python -m venv venv || python -m virtualenv venv\
-      && . venv/bin/activate\
-      && pip install --upgrade pip\
-      && pip install --upgrade -r requirements.txt -t .\
-      && popd
+    pip install virtualenv --user
+
+    pushd generic_provider
+
+    python -m virtualenv venv
+
+    source venv/bin/activate
+
+    pip install --upgrade pip
+
+    pip install --upgrade -r requirements.txt -t .
+
+    popd
 
 
 #### compile dependencies
@@ -1556,8 +1562,37 @@ aws s3api put-bucket-policy\
 
 
 
-## mock resources requests
+### EKS
+> [EKS](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/eks.html) API reference
 
+#### get addon version(s)
+
+    pushd generic_provider
+    echo "{
+      \"RequestType\": \"Create\",
+      \"ResponseURL\": \"https://cloudformation-custom-resource-response-${AWS_REGION}.s3.amazonaws.com/\",
+      \"StackId\": \"arn:aws:cloudformation:${AWS_REGION}:$(aws sts get-caller-identity | jq -r '.Account'):stack/MockStack/$(uuid)\",
+      \"RequestId\": \"$(uuid)\",
+      \"ResourceType\": \"Custom::MockResource\",
+      \"LogicalResourceId\": \"MockResource\",
+      \"ResourceProperties\": {
+          \"AgentType\": \"client\",
+          \"AgentService\": \"eks\",
+          \"AgentCreateMethod\": \"describe_addon_versions\",
+          \"AgentWaitQueryExpr\": \"$.[0].addonVersions[0].addonVersion\",
+          \"AgentResourceId\": \"addonVersion\",
+          \"AgentResponseNode\": \"addons\",
+          \"AgentCreateArgs\": {
+              \"kubernetesVersion\": \"1.31\",
+              \"addonName\": \"kube-proxy\"
+          }
+      }
+    }" | jq -c | ./generic_provider.py
+    popd
+
+
+
+## mock resources requests
 > [EC2](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2.html) API reference
 
 #### network-interfaces-attribute
