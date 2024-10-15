@@ -534,7 +534,7 @@ class Provider:
                         event,
                         context,
                         cfnresponse.SUCCESS,
-                        responseData=responseData,
+                        responseData=responseData[0] if type(responseData) == list else responseData,
                         physicalResourceId=physicalResourceId,
                         noEcho=no_echo
                     )
@@ -580,7 +580,7 @@ class Provider:
                         event,
                         context,
                         cfnresponse.SUCCESS,
-                        responseData=responseData,
+                        responseData=responseData[0] if type(responseData) == list else responseData,
                         physicalResourceId=event['PhysicalResourceId'],
                         noEcho=no_echo
                     )
@@ -615,7 +615,7 @@ class Provider:
                         event,
                         context,
                         cfnresponse.SUCCESS,
-                        responseData=responseData,
+                        responseData=responseData[0] if type(responseData) == list else responseData,
                         physicalResourceId=event['PhysicalResourceId'],
                         noEcho=no_echo
                     )
@@ -645,7 +645,7 @@ class Provider:
                 event,
                 context,
                 cfnresponse.SUCCESS,
-                responseData=responseData,
+                responseData=responseData[0] if type(responseData) == list else responseData,
                 physicalResourceId=PhysicalResourceId,
                 noEcho=no_echo
             )
