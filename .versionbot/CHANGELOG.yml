@@ -1,4 +1,16 @@
 - commits:
+    - subject: Only return objects (dicts)
+      hash: a82cc8e885b50ff085275006144b3bb00e4c134f
+      body: |
+        * add EKS example
+      footer:
+        change-type: patch
+      author: Anton Belodedenko
+      nested: []
+  version: 0.0.15
+  title: ""
+  date: 2024-10-15T23:19:33.748Z
+- commits:
     - subject: log exception
       hash: 9659ff6ce114feba9dd60f203a8f3b5c04fe5477
       body: ""
