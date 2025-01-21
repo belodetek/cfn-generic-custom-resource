@@ -1579,9 +1579,8 @@ aws s3api put-bucket-policy\
           \"AgentType\": \"client\",
           \"AgentService\": \"eks\",
           \"AgentCreateMethod\": \"describe_addon_versions\",
-          \"AgentWaitQueryExpr\": \"$.[0].addonVersions[0].addonVersion\",
-          \"AgentResourceId\": \"addonVersion\",
-          \"AgentResponseNode\": \"addons\",
+          \"AgentResourceId\": \"$.addonVersion\",
+          \"AgentResponseNode\": \"$.[0].addonVersions[0]\",
           \"AgentCreateArgs\": {
               \"kubernetesVersion\": \"1.31\",
               \"addonName\": \"kube-proxy\"
