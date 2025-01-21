@@ -1,4 +1,15 @@
 - commits:
+    - subject: JSONpath responseData on Agent{ResponseNode,ResourceId}
+      hash: 8af60a75d1e9c65dc022ca6ceb31e7f2159274f6
+      body: ""
+      footer:
+        change-type: patch
+      author: Anton Belodedenko
+      nested: []
+  version: 0.0.16
+  title: ""
+  date: 2025-01-21T23:14:03.179Z
+- commits:
     - subject: Only return objects (dicts)
       hash: a82cc8e885b50ff085275006144b3bb00e4c134f
       body: |
