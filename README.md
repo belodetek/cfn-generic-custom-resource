@@ -1579,7 +1579,7 @@ aws s3api put-bucket-policy\
           \"AgentType\": \"client\",
           \"AgentService\": \"eks\",
           \"AgentCreateMethod\": \"describe_addon_versions\",
-          \"AgentResourceId\": \"$.addonVersion\",
+          \"AgentWaitQueryExpr\": \"$.[0].addonVersions[0].addonVersion\",
           \"AgentResponseNode\": \"$.[0].addonVersions[0]\",
           \"AgentCreateArgs\": {
               \"kubernetesVersion\": \"1.31\",
