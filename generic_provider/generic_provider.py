@@ -326,9 +326,10 @@ class Provider:
                 delete=delete
             )
 
+            # obtain PhysicalResourceId for CREATE
             try:
-                responseData = jsonpath(response, agent_response_node)[0]
-                assert responseData, 'responseData from jsonpath(response, agent_response_node)'
+                responseData = response[agent_response_node]
+                assert responseData, 'responseData from response[agent_response_node]'
             except:
                 if self.verbose: print_exc()
                 try:
@@ -348,16 +349,19 @@ class Provider:
                 except:
                     if self.verbose: print_exc()
                     try:
-                        PhysicalResourceId = jsonpath(responseData, agent_resource_id)[0]
-                        assert PhysicalResourceId, 'PhysicalResourceId from jsonpath(response, agent_resource_id)'
+                        PhysicalResourceId = agent_kwargs[agent_resource_id]
+                        assert PhysicalResourceId, 'PhysicalResourceId from event[resource_key][args_key][agent_resource_id]'
                     except:
                         if self.verbose: print_exc()
-                        try:
-                            PhysicalResourceId = agent_kwargs[agent_resource_id]
-                            assert PhysicalResourceId, 'PhysicalResourceId from event[resource_key][args_key][agent_resource_id]'
-                        except:
-                            if self.verbose: print_exc()
-                            PhysicalResourceId = str(uuid4())
+                        PhysicalResourceId = str(uuid4())
+
+            # truncate responseData using JSONPath expression from agent_response_node
+            try:
+                responseData = jsonpath(responseData, agent_response_node)[0]
+                assert responseData, 'responseData from jsonpath(responseData, agent_response_node)'
+            except:
+                if self.verbose: print_exc()
+
             if create:
                 if no_echo == 'false':
                     print(
