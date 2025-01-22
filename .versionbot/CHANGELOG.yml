@@ -1,4 +1,15 @@
 - commits:
+    - subject: Correct PhysicalResourceId on UPDATE
+      hash: 8f9ef7bae6b4b00b9881bbc2d213392324d3cd29
+      body: ""
+      footer:
+        change-type: patch
+      author: Anton Belodedenko
+      nested: []
+  version: 0.0.17
+  title: ""
+  date: 2025-01-22T01:35:18.432Z
+- commits:
     - subject: JSONpath responseData on Agent{ResponseNode,ResourceId}
       hash: 8af60a75d1e9c65dc022ca6ceb31e7f2159274f6
       body: ""
