@@ -54,6 +54,7 @@ jobs:
         ghcr.io/belodetek/cfn-generic-provider,
         public.ecr.aws/k4v3r5y6/cfn-generic-provider,
         312433241086.dkr.ecr.us-east-1.amazonaws.com/cfn-generic-provider
+        312433241086.dkr.ecr.eu-central-1.amazonaws.com/cfn-generic-provider
       # .. or multi-arch :/
       # https://stackoverflow.com/a/76323686/1559300
       # https://github.com/docker/buildx/issues/1533
