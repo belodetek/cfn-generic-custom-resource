@@ -15,7 +15,8 @@ class AUTOSCALING:
             'args: {}, kwargs: {}'.format(args, kwargs),
             file=sys.stderr
         )
-
+        self.session = boto3.session.Session(**kwargs)
+        self.region_name = kwargs['region_name']
 
     def filter_launch_configuration(self, *args, **kwargs):
         if self.verbose: print(
@@ -71,7 +72,7 @@ class AUTOSCALING:
         instance_profile = kwargs['launch_template_data']['IamInstanceProfile'].split('/')[-1:][0]
         kwargs['launch_template_data'].pop('IamInstanceProfile', None)
         kwargs['launch_template_data']['IamInstanceProfile'] = {}
-        client = boto3.client('iam')
+        client = self.session.client('iam')
         response = client.get_instance_profile(
             InstanceProfileName=instance_profile
         )
@@ -109,7 +110,7 @@ class AUTOSCALING:
             file=sys.stderr
         )
 
-        client = boto3.client('autoscaling')
+        client = self.session.client('autoscaling')
         response = client.describe_launch_configurations(
             LaunchConfigurationNames=[kwargs['launch_configuration_name']]
         )
@@ -136,7 +137,7 @@ class AUTOSCALING:
         launch_template_name = kwargs['LaunchTemplateName']
         description = kwargs['Description']
 
-        client = boto3.client('ec2')
+        client = self.session.client('ec2')
         response = client.create_launch_template(
             LaunchTemplateName=launch_template_name,
             VersionDescription=description,
@@ -160,7 +161,7 @@ class AUTOSCALING:
             file=sys.stderr
         )
 
-        client = boto3.client('ec2')
+        client = self.session.client('ec2')
         response = client.delete_launch_template(**kwargs)
 
         if self.verbose: print(
@@ -189,7 +190,7 @@ class AUTOSCALING:
             file=sys.stderr
         )
 
-        client = boto3.client('autoscaling')
+        client = self.session.client('autoscaling')
         response = client.update_auto_scaling_group(
             AutoScalingGroupName=auto_scaling_group_name,
             MixedInstancesPolicy=mixed_instances_policy
