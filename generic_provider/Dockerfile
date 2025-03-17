@@ -3,9 +3,10 @@ FROM public.ecr.aws/lambda/python:3.11 AS build
 
 WORKDIR ${LAMBDA_TASK_ROOT}/build
 
+# FIXME: https://github.com/aws/aws-lambda-base-images/issues/245#issuecomment-2725656680
 RUN yum update -y \
     && yum groupinstall "Development Tools" -y \
-    && yum install -y ibffi openssl-devel
+    && yum install -y ibffi openssl-devel-1.0.2k-24.amzn2.0.14
 
 COPY requirements.txt .
 
