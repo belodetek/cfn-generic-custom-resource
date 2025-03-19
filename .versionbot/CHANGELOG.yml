@@ -1,4 +1,20 @@
 - commits:
+    - subject: "patch: Use boto session for all clients"
+      hash: 951d1b2f3fb1ee2a53a6bff68b28e9b1c141cc78
+      body: ""
+      footer: {}
+      author: Anton Belodedenko
+      nested: []
+    - subject: "patch: Deploy to eu-central-1 for Lambda access"
+      hash: 7aa697f1dbb576cc8e6e665f46b0d82a84f06aa7
+      body: ""
+      footer: {}
+      author: Anton Belodedenko
+      nested: []
+  version: 0.0.18
+  title: ""
+  date: 2025-03-19T15:16:50.868Z
+- commits:
     - subject: Correct PhysicalResourceId on UPDATE
       hash: 8f9ef7bae6b4b00b9881bbc2d213392324d3cd29
       body: ""
