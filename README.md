@@ -2,9 +2,7 @@
 
 > **TL;DR** One *Custom Resource provider* to Rule Them All, inspect the [code](https://github.com/ab77/cfn-generic-custom-resource/blob/master/generic_provider/generic_provider.py), read the [blog](https://anton.belodedenko.me/generic-custom-resource-provider/), try some [examples](http://cloudformation.belodetek.io/#mock-client-requests) and consider [contributing](CONTRIBUTING.md) 🤓
 
-
-
-## TOC
+## ToC
 
 ### CloudFormation demo stacks
 * [Client VPN](#client-vpn-demo)
@@ -12,7 +10,6 @@
 * [VPC peering](#vpc-peering-demo)
 * [AWS Backup (EFS)](#aws-backup-efs)
 * [ACM Private CA](#acm-private-ca)
-
 
 ### mock requests
 
@@ -31,14 +28,16 @@
 #### resources
 * [resources requests](#mock-resources-requests)
 
-
-
 ## about
-The idea behind this project was to make available a flexible and simple tool to enable creation of any AWS resource supported by the API. We implement this functionality via a generic CloudFormation [Custom Resources](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/template-custom-resources.html) provider in Python (3), using [boto3](https://boto3.amazonaws.com/v1/documentation/api/latest/index.html). The word "generic" is used here in a sense of having just one Lambda function, which can be used to create different custom resources by varying the input parameters.
+> a lot of the examples below have been replaced by native CloudFormation functionality
 
-For more information, please read this blog [post](https://anton.belodedenko.me/generic-custom-resource-provider/).
+The idea behind this project was to make available a flexible and simple tool to enable
+creation of any AWS resource supported by the API. We implement this functionality via a
+generic CloudFormation [Custom Resources] provider in Python (3), using [boto3]. The word
+"generic" is used here in a sense of having just one Lambda function, which can be used to
+create different custom resources by varying the input parameters.
 
-
+For more information, please read this blog [post].
 
 ## CloudFormation
 > All shell-fu is Bash; `git`, `pip`, `awscli` and `jq` required.
@@ -49,13 +48,13 @@ For more information, please read this blog [post](https://anton.belodedenko.me/
       https://github.com/ab77/cfn-generic-custom-resource\
       && cd cfn-generic-custom-resource
 
-
 ### create bucket
-> 📝 creates a new bucket with a random GUID; ensure `~/.aws/credentials` and `~/.aws/config` are configured (run `aws configure ...`) and export `AWS_PROFILE` and `AWS_REGION` environment variables
+> 📝 creates a new bucket with a random GUID; ensure `~/.aws/credentials` and
+  `~/.aws/config` are configured (run `aws configure ...`) and export `AWS_PROFILE` and
+  `AWS_REGION` environment variables
 
     bucket=$(uuid)
     aws s3 mb s3://${bucket}
-
 
 #### install requirements (venv)
 > 📝 AWS Lambda provided boto3 library doesn't support Client VPN resources at the time of writing, so we need to package it with the code
@@ -74,11 +73,9 @@ For more information, please read this blog [post](https://anton.belodedenko.me/
 
     popd
 
-
 #### compile dependencies
 
     docker ps && pushd generic_provider && make && popd
-
 
 ### Client VPN demo
 > ☢️ beware of the currently eye-watering Client VPN [pricing](https://aws.amazon.com/vpn/pricing/)
@@ -111,7 +108,6 @@ For more information, please read this blog [post](https://anton.belodedenko.me/
       --private-key file://easy-rsa/easyrsa3/pki/private/client1.${domain_name}.key\
       --certificate-chain file://easy-rsa/easyrsa3/pki/ca.crt | jq -r '.CertificateArn')
 
-
 #### package assets
 > 📦 package CloudFormation templates and Lambda function(s) and upload to S3
 
@@ -121,7 +117,6 @@ For more information, please read this blog [post](https://anton.belodedenko.me/
           --s3-bucket ${bucket}\
           --output-template-file ${template}.yaml
     done; popd
-
 
 #### deploy stack
 > 📝  creates Client VPN endpoint with `certificate-authentication`; for `directory-service-authentication` or both, specify additional `DirectoryId` parameter
@@ -153,7 +148,6 @@ For more information, please read this blog [post](https://anton.belodedenko.me/
       Profile=${AWS_PROFILE}\
       AccountId=$(aws sts get-caller-identity | jq -r '.Account'); popd
 
-
 #### download profile
 
     vpn_stack=$(aws cloudformation list-exports\
@@ -165,12 +159,9 @@ For more information, please read this blog [post](https://anton.belodedenko.me/
     aws ec2 export-client-vpn-client-configuration\
       --client-vpn-endpoint-id ${client_vpn_endpoint} | jq -r '.ClientConfiguration' > client.ovpn
 
-
 #### connect
 * [macOS](https://tunnelblick.net/downloads.html)
 * [Windows/Linux](https://openvpn.net/community-downloads/)
-
-
 
 ### Cognito demo
 > 📝 make sure to [create bucket](#create-bucket) and [install requirements](#install-requirements) first
@@ -205,19 +196,16 @@ aws s3api put-bucket-policy\
   && rm ${tmpfile}
 ```
 
-
 #### download metadata
 * login to [Google Apps Admin](https://admin.google.com)
 * navigate to `Apps -> SAML Apps --> + --> SETUP MY OWN CUSTOM APP`
 * select `(Option 2) IDP metadata`, download and save
-
 
 #### copy metadata
 
     domain_name='foo.bar'
 
     aws s3 cp GoogleIDPMetadata-${domain_name}.xml s3://${bucket}/
-
 
 #### package assets
 
@@ -227,7 +215,6 @@ aws s3api put-bucket-policy\
           --s3-bucket ${bucket}\
           --output-template-file ${template}.yaml
     done; popd
-
 
 #### deploy stack
 
@@ -258,7 +245,6 @@ aws s3api put-bucket-policy\
     echo "ACS URL: https://${stack_name}.auth.${AWS_REGION}.amazoncognito.com/saml2/idpresponse"
     echo "Entity ID: urn:amazon:cognito:sp:${user_pool_id}"
 
-
 #### configure G Suite
 > [Cognito IdP](https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-pools-configuring-federation-with-saml-2-0-idp.html) with [Google SAML](https://support.google.com/a/answer/6087519?hl=en)
 
@@ -267,8 +253,6 @@ aws s3api put-bucket-policy\
 * set `ACS URL` as per above
 * set `Entity ID` as per above
 * continue with [ALB configuration](https://aws.amazon.com/blogs/aws/built-in-authentication-in-alb/)
-
-
 
 ### VPC peering demo
 > creates a peering connection between source and destination VPCs, including tags and routes in both directions
@@ -281,7 +265,6 @@ aws s3api put-bucket-policy\
           --s3-bucket ${bucket}\
           --output-template-file ${template}.yaml
     done; popd
-
 
 #### create IAM role
 > ☢ ensure appropriate [VPCPeeringRole](lambda-template.yaml#L12) exists in the VPC accepter AWS account and review IAM role permissions
@@ -303,7 +286,6 @@ aws s3api put-bucket-policy\
           Path: '/'
           ...
 
-
 #### update IAM role
 > ☢ add VPC requester AWS accounts to [CustomResourceLambdaRole](lambda-template.yaml#L94) under the `AmazonSTSPolicy` policy and review IAM role permissions
 
@@ -319,7 +301,6 @@ aws s3api put-bucket-policy\
             # list your VPC peering accepter (target) AWS accounts here
             - !Sub 'arn:${AWS::Partition}:iam::123456789001:role/VPCPeeringRole'
             ...
-
 
 #### deploy stack
 > 📝 optionally enable EC2 nested stack and supply `SecurityGroup` in the accepter VPC as well as `TargetPort`
@@ -377,8 +358,6 @@ aws s3api put-bucket-policy\
       Profile=${AWS_PROFILE}\
       AccountId=$(aws sts get-caller-identity | jq -r '.Account'); popd
 
-
-
 ### AWS Backup (EFS)
 > also see mock [examples](#backup) below
 
@@ -390,7 +369,6 @@ aws s3api put-bucket-policy\
           --s3-bucket ${bucket}\
           --output-template-file ${template}.yaml
     done; popd
-
 
 #### deploy stack
 > see [resource ARNs and namespaces](https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html) for `ResourceId` parameter
@@ -416,8 +394,6 @@ aws s3api put-bucket-policy\
       Profile=${AWS_PROFILE}\
       AccountId=$(aws sts get-caller-identity | jq -r '.Account'); popd
 
-
-
 ### ACM Private CA
 > also see mock [examples](#acm-pca) below
 
@@ -429,7 +405,6 @@ aws s3api put-bucket-policy\
           --s3-bucket ${bucket}\
           --output-template-file ${template}.yaml
     done; popd
-
 
 #### deploy stack
 > ⚠️ ensure to clean-up the CA resources to avoid $400/month surprise on your next AWS bill
@@ -460,11 +435,8 @@ aws s3api put-bucket-policy\
       Profile=${AWS_PROFILE}\
       AccountId=$(aws sts get-caller-identity | jq -r '.Account'); popd
 
-
-
 ## mock client requests
 > 🐞 useful to debug resource creation of AWS resources from a local workstation
-
 
 ### ACM
 > [ACM](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/acm.html) API reference
@@ -520,7 +492,6 @@ aws s3api put-bucket-policy\
       }
     }" | jq -c | VERBOSE=1 ./generic_provider.py
     popd
-
 
 ### ACM-PCA
 > [ACM-PCA](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/acm-pca.html) API reference
@@ -596,7 +567,6 @@ aws s3api put-bucket-policy\
     }" | jq -c | VERBOSE=1 ./generic_provider.py
     popd
 
-
 #### create_self_signed_cert
 > mock CloudFormation request to [create_self_signed_cert](https://github.com/ab77/cfn-generic-custom-resource/blob/master/generic_provider/acm_pca.py)
 
@@ -628,7 +598,6 @@ aws s3api put-bucket-policy\
     && openssl x509 -in ca.crt -text -noout
     popd
 
-
 #### get_certificate_authority_csr
 > mock CloudFormation request to [get_certificate_authority_csr](https://github.com/ab77/cfn-generic-custom-resource/blob/master/generic_provider/acm_pca.py)
 
@@ -651,7 +620,6 @@ aws s3api put-bucket-policy\
         }
       }" | jq -c | VERBOSE=1 ./generic_provider.py | jq -r .Data.Csr > csr.pem && openssl req -in csr.pem -text -noout
       popd
-
 
 #### sign_csr
 > mock CloudFormation request to [sign_csr](https://github.com/ab77/cfn-generic-custom-resource/blob/master/generic_provider/acm_pca.py) request
@@ -687,7 +655,6 @@ aws s3api put-bucket-policy\
     }" | jq -c | VERBOSE=1 ./generic_provider.py > test.crt && openssl x509 -in test.crt -text -noout
     popd
 
-
 #### import_certificate_authority_certificate
 > mock CloudFormation request to [import_certificate_authority_certificate](https://github.com/ab77/cfn-generic-custom-resource/blob/master/generic_provider/acm_pca.py)
 
@@ -712,7 +679,6 @@ aws s3api put-bucket-policy\
       }
     }" | jq -c | VERBOSE=1 ./generic_provider.py
     popd
-
 
 ### S3
 > [S3](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/s3.html) API reference
@@ -798,6 +764,51 @@ aws s3api put-bucket-policy\
     }" | jq -c | VERBOSE=1 ./generic_provider.py
     popd
 
+#### put_bucket_replication
+> mock CloudFormation request to [add](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/s3/client/put_bucket_replication.html) a bucket replication rule
+  .. also see [bucket replication rules](examples/s3/bucket-replication-rule.yml) template
+
+     pushd generic_provider
+     aws_account_id=$(aws sts get-caller-identity | jq -r '.Account')
+
+     echo "{
+      \"RequestType\": \"Create\",
+      \"ResponseURL\": \"https://cloudformation-custom-resource-response-${AWS_REGION}.s3.amazonaws.com/\",
+      \"StackId\": \"arn:aws:cloudformation:${AWS_REGION}:${aws_account_id}:stack/MockStack/$(uuid)\",
+      \"RequestId\": \"$(uuid)\",
+      \"ResourceType\": \"Custom::MockResource\",
+      \"LogicalResourceId\": \"MockResource\",
+      \"ResourceProperties\": {
+        \"AgentService\": \"s3\",
+        \"AgentType\": \"client\",
+        \"AgentCreateMethod\": \"put_bucket_replication\",
+        \"AgentCreateArgs\": {
+          \"Bucket\": \"foo\",
+          \"ReplicationConfiguration\": {
+            \"Role\": \"arn:aws:iam::${aws_account_id}:role/bucket-replication-role\",
+            \"Rules\": [
+              {
+                \"Status\": \"Enabled\",
+                \"SourceSelectionCriteria\": {
+                  \"SseKmsEncryptedObjects\": {
+                    \"Status\": \"Enabled\"
+                  }
+                },
+                \"Prefix\": \"\",
+                \"Destination\": {
+                  \"Bucket\": \"arn:aws:s3:::bar\",
+                  \"StorageClass\": \"StorageClass\",
+                  \"EncryptionConfiguration\": {
+                    \"ReplicaKmsKeyID\": \"arn:aws:kms:eu-central-1:${aws_account_id}:alias/aws/s3\"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    }" | jq -c | ./generic_provider.py
+    popd
 
 ### Backup
 > [Backup](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/backup.html) API reference
@@ -832,7 +843,6 @@ aws s3api put-bucket-policy\
       }
     }" | jq -c | VERBOSE=1 ./generic_provider.py
     popd
-
 
 #### create-backup-plan
 > mock CloudFormation request to [create](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/backup.html#Backup.Client.create_backup_plan) a backup plan
@@ -897,7 +907,6 @@ aws s3api put-bucket-policy\
     }" | jq -c | VERBOSE=1 ./generic_provider.py
     popd
 
-
 #### create-backup-selection
 > mock CloudFormation request to [create](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/backup.html#Backup.Client.create_backup_selection) a backup slection
 
@@ -940,8 +949,6 @@ aws s3api put-bucket-policy\
       }
     }" | jq -c | VERBOSE=1 ./generic_provider.py
     popd
-
-
 
 ### Directory Services
 > [Directory Services](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ds.html) API reference
@@ -997,8 +1004,6 @@ aws s3api put-bucket-policy\
     && ./generic_provider.py "${mock_lambda_event}"\
     && popd
 
-
-
 ### IAM
 > [IAM](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/iam.html) API reference
 
@@ -1031,8 +1036,6 @@ aws s3api put-bucket-policy\
     }" | jq -c | ./generic_provider.py
     popd
 
-
-
 ### KMS
 > [KMS](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/kms.html) API reference
 
@@ -1058,8 +1061,6 @@ aws s3api put-bucket-policy\
       }
     }" | jq -c | ./generic_provider.py
     popd
-
-
 
 ### Relational Database Service
 > [RDS](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/rds.html) API reference
@@ -1130,7 +1131,6 @@ aws s3api put-bucket-policy\
     }" | jq -c | ./generic_provider.py
     popd
 
-
 #### modify-db-instance
 > mock CloudFormation request to [enable](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/rds.html#RDS.Client.modify_db_cluster) RDS Performance Insights
 
@@ -1189,8 +1189,6 @@ aws s3api put-bucket-policy\
     }" | jq -c | ./generic_provider.py
     popd
 
-
-
 ### Database Migration Service
 > [DMS](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/dms.html) API reference
 
@@ -1223,7 +1221,6 @@ aws s3api put-bucket-policy\
       }
     }" | jq -c | ./generic_provider.py
     popd
-
 
 #### stop-replication-task
 > mock CloudFormation request to [stop](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/dms.html#DatabaseMigrationService.Client.stop_replication_task) replication task
@@ -1266,11 +1263,8 @@ aws s3api put-bucket-policy\
     }" | jq -c | ./generic_provider.py
     popd
 
-
-
 ### EC2
 > [EC2](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2.html) API reference
-
 
 #### create_launch_template_from_configuration
 > mock CloudFormation request to [create_launch_template_from_configuration](https://github.com/ab77/cfn-generic-custom-resource/blob/master/generic_provider/autoscaling.py)
@@ -1311,8 +1305,6 @@ aws s3api put-bucket-policy\
       }
     }" | jq -c | VERBOSE=1 ./generic_provider.py
     popd
-
-
 
 #### update_auto_scaling_group
 > mock CloudFormation request to update ASGs created by Elastic Beanstalk with [MixedInstancesPolicy](https://github.com/ab77/cfn-generic-custom-resource/blob/master/generic_provider/autoscaling.py)
@@ -1369,8 +1361,6 @@ aws s3api put-bucket-policy\
     }" | jq -c | VERBOSE=1 ./generic_provider.py
     popd
 
-
-
 #### create-tags
 > mock CloudFormation request to [tag](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2.html#EC2.ServiceResource.create_tags) resources
 
@@ -1412,8 +1402,6 @@ aws s3api put-bucket-policy\
       }
     }" | jq -c | ./generic_provider.py
     popd
-
-
 
 #### authorize-security-group-ingress
 > mock CloudFormation request to [authorize_security_group_ingress](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2.html#EC2.Client.authorize_security_group_ingress) in another account
@@ -1471,7 +1459,6 @@ aws s3api put-bucket-policy\
     }" | jq -c | ./generic_provider.py
     popd
 
-
 #### modify-subnet-attribute
 > mock CloudFormation request to [modify](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2.html#EC2.Client.modify_subnet_attribute) subnet attribute(s)
 
@@ -1497,7 +1484,6 @@ aws s3api put-bucket-policy\
     }" | jq -c | ./generic_provider.py
     popd
 
-
 #### get-parameter
 > mock CloudFormation request to [get](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ssm.html#SSM.Client.get_parameter) existing SSM parameter (stored outside of stack)
 
@@ -1521,7 +1507,6 @@ aws s3api put-bucket-policy\
       }
     }" | jq -c | ./generic_provider.py
     popd
-
 
 #### put-parameter
 > mock CloudFormation request to [put](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ssm.html#SSM.Client.put_parameter) SSM parameter
@@ -1560,8 +1545,6 @@ aws s3api put-bucket-policy\
     }" | jq -c | ./generic_provider.py
     popd
 
-
-
 ### EKS
 > [EKS](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/eks.html) API reference
 
@@ -1588,8 +1571,6 @@ aws s3api put-bucket-policy\
       }
     }" | jq -c | ./generic_provider.py
     popd
-
-
 
 ## mock resources requests
 > [EC2](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2.html) API reference
@@ -1619,6 +1600,10 @@ aws s3api put-bucket-policy\
     }" | jq -c | ./generic_provider.py
     popd
 
-
-
 >--belodetek 😬
+
+
+[post]: https://anton.belodedenko.me/generic-custom-resource-provider/
+[Custom Resources]: https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/template-custom-resources.html
+[boto3]: https://boto3.amazonaws.com/v1/documentation/api/latest/index.html
+[bucket replication rules]: examples/s3/bucket-replication-rule.yml

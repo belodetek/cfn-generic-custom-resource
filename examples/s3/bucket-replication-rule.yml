@@ -1,0 +1,114 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: AWS/S3 Replication Rule
+
+Parameters:
+  SourceBucketName:
+    Type: String
+
+  TargetBucketName:
+    Type: String
+
+  TargetBucketRegion:
+    Type: String
+
+  StorageClass:
+    Type: String
+    Default: "STANDARD"
+
+  CustomResourceVersion:
+    Type: String
+
+Resources:
+  Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action:
+              - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+                - s3.amazonaws.com
+
+  Policy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub "${AWS::StackName}-policy"
+      PolicyDocument:
+        Statement:
+          - Action:
+              - s3:GetReplicationConfiguration
+              - s3:ListBucket
+            Effect: Allow
+            Resource: !Sub "arn:${AWS::Partition}:s3:::${SourceBucketName}"
+          - Action:
+              - s3:GetObjectVersion
+              - s3:GetObjectVersionAcl
+            Effect: Allow
+            Resource: !Sub "arn:${AWS::Partition}:s3:::${SourceBucketName}/*"
+          - Action:
+              - s3:ReplicateObject
+              - s3:ReplicateDelete
+            Effect: Allow
+            Resource: !Sub "arn:${AWS::Partition}:s3:::${TargetBucketName}/*"
+      Roles:
+        - !Ref Role
+
+  ReplicationRule:
+    Type: Custom::ReplicationRule
+    Version: "1.0"
+    Properties:
+      ServiceToken: !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:custom-resource"
+      AgentService: s3
+      AgentType: client
+      # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/s3/client/put_bucket_replication.html
+      AgentCreateMethod: put_bucket_replication
+      AgentCreateArgs:
+        Bucket: !Ref SourceBucketName
+        ReplicationConfiguration:
+          Role: !Sub "${Role.Arn}"
+          Rules:
+            - Status: Enabled
+              SourceSelectionCriteria:
+                SseKmsEncryptedObjects:
+                  Status: Enabled
+              Prefix: ""
+              Destination:
+                Bucket: !Sub "arn:${AWS::Partition}:s3:::${TargetBucketName}"
+                StorageClass: !Ref StorageClass
+                EncryptionConfiguration:
+                  ReplicaKmsKeyID: !Sub "arn:${AWS::Partition}:kms:${TargetBucketRegion}:${AWS::AccountId}:alias/aws/s3"
+      AgentUpdateMethod: put_bucket_replication
+      AgentUpdateArgs:
+        Bucket: !Ref SourceBucketName
+        ReplicationConfiguration:
+          Role: !Sub "${Role.Arn}"
+          Rules:
+            - Status: Enabled
+              SourceSelectionCriteria:
+                SseKmsEncryptedObjects:
+                  Status: Enabled
+              Prefix: ""
+              Destination:
+                Bucket: !Sub "arn:${AWS::Partition}:s3:::${TargetBucketName}"
+                StorageClass: !Ref StorageClass
+                EncryptionConfiguration:
+                  ReplicaKmsKeyID: !Sub "arn:${AWS::Partition}:kms:${TargetBucketRegion}:${AWS::AccountId}:alias/aws/s3"
+      # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/s3/client/delete_bucket_replication.html
+      AgentDeleteMethod: delete_bucket_replication
+      AgentDeleteArgs:
+        Bucket: !Ref SourceBucketName
+      Version: !Ref CustomResourceVersion
+
+Outputs:
+  Role:
+    Value: !Ref Role
+    Export:
+      Name: !Sub "${AWS::StackName}-Role"
+
+  RoleArn:
+    Value: !Sub "${Role.Arn}"
+    Export:
+      Name: !Sub "${AWS::StackName}-RoleArn"
