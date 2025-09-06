@@ -1545,6 +1545,29 @@ aws s3api put-bucket-policy\
     }" | jq -c | ./generic_provider.py
     popd
 
+#### get the latest launch template version
+
+    pushd generic_provider
+    echo "{
+      \"RequestType\": \"Create\",
+      \"ResponseURL\": \"https://cloudformation-custom-resource-response-${AWS_REGION}.s3.amazonaws.com/\",
+      \"StackId\": \"arn:aws:cloudformation:${AWS_REGION}:$(aws sts get-caller-identity | jq -r '.Account'):stack/MockStack/$(uuid)\",
+      \"RequestId\": \"$(uuid)\",
+      \"ResourceType\": \"Custom::MockResource\",
+      \"LogicalResourceId\": \"MockResource\",
+      \"PhysicalResourceId\": \"$(uuid)\",
+      \"ResourceProperties\": {
+          \"AgentType\": \"client\",
+          \"AgentService\": \"ec2\",
+          \"AgentCreateMethod\": \"describe_launch_template_versions\",
+          \"AgentCreateArgs\": {
+              \"LaunchTemplateId\": \"lt-deadbeef1234567890\"
+          },
+          \"AgentResponseNode\": \"$.[0].VersionNumber\"
+      }
+    }" | jq -c | VERBOSE=1 ./generic_provider.py
+    popd
+
 ### EKS
 > [EKS](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/eks.html) API reference
 
@@ -1567,6 +1590,32 @@ aws s3api put-bucket-policy\
           \"AgentCreateArgs\": {
               \"kubernetesVersion\": \"1.31\",
               \"addonName\": \"kube-proxy\"
+          }
+      }
+    }" | jq -c | ./generic_provider.py
+    popd
+
+#### update nodegroup to latest launch template version
+
+    pushd generic_provider
+    echo "{
+      \"RequestType\": \"Create\",
+      \"ResponseURL\": \"https://cloudformation-custom-resource-response-${AWS_REGION}.s3.amazonaws.com/\",
+      \"StackId\": \"arn:aws:cloudformation:${AWS_REGION}:$(aws sts get-caller-identity | jq -r '.Account'):stack/MockStack/$(uuid)\",
+      \"RequestId\": \"$(uuid)\",
+      \"ResourceType\": \"Custom::MockResource\",
+      \"LogicalResourceId\": \"MockResource\",
+      \"ResourceProperties\": {
+          \"AgentType\": \"client\",
+          \"AgentService\": \"eks\",
+          \"AgentCreateMethod\": \"update_nodegroup_version\",
+          \"AgentCreateArgs\": {
+              \"clusterName\": \"foo-bar\",
+              \"nodegroupName\": \"foo-bar\",
+              \"launchTemplate\": {
+                \"id\": \"lt-deadbeef1234567890\",
+                \"version\": \"21\"
+              }
           }
       }
     }" | jq -c | ./generic_provider.py
